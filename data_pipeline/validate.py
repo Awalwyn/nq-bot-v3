@@ -226,10 +226,12 @@ def check_labels(sig, rep: Report):
             rep.warn(f"{len(bad)} rows have {col} beyond window_minutes.")
 
     # censor implies later horizons are missing
-    cens = sig[sig["right_censored"] == 1]
+    cens = sig[sig["right_censored"] == 1].copy()
     if len(cens):
-        # for censored rows cut before 60m, delta_60m should usually be NaN
-        cut_early = cens[(we - st).dt.total_seconds() / 60.0 < 60]
+        cens_span = (pd.to_datetime(cens["window_end"], errors="coerce")
+                     - pd.to_datetime(cens["signal_time"], errors="coerce")
+                     ).dt.total_seconds() / 60.0
+        cut_early = cens[cens_span.values < 60]
         has_60 = cut_early["delta_60m"].notna().sum()
         if has_60:
             rep.warn(f"{has_60} right-censored rows (cut before 60m) still have delta_60m set.")

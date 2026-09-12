@@ -1,0 +1,11 @@
+data/
+models/
+*.csv
+*.parquet
+*.onnx
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+.idea/
+.vscode/

@@ -49,7 +49,17 @@ git init && git add -A && git commit -m "v3 scaffold: logger, schema, validator,
 # git remote add origin <url> && git push -u origin main
 ```
 
+### Try the pipeline locally — no ThinkPad, no real data needed
+Confirms your Python env and lets you see a passing validation run:
+```bash
+uv sync
+uv run python scripts/make_sample_data.py --out data/training
+uv run python -m data_pipeline.validate --dir data/training   # -> PASSED
+rm data/training/*sample*   # clear the fake data afterwards
+```
+
 ### ThinkPad (when it's back up)
+Full command sheet: `docs/SETUP_THINKPAD.md`.
 1. `git clone <url> C:\nqbotv3\repo`
 2. Copy `ninjascript\SignalLogger.cs` into
    `Documents\NinjaTrader 8\bin\Custom\Indicators\`, compile in NT8 (F5).
