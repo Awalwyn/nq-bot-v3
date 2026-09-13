@@ -22,7 +22,10 @@ from __future__ import annotations
 IDENTITY = [
     "signal_id",
     "run_id",
-    "instrument",
+    "instrument",          # full contract, e.g. "NQ 12-26" (review fix 4)
+    "instrument_master",   # "NQ"
+    "expiry",              # contract expiry date, if available
+    "tick_size",
     "bar_period",
     "signal_time",
     "session_date",
@@ -84,8 +87,10 @@ LABEL = [
     "mfe_ticks", "mae_ticks", "minutes_to_mfe", "minutes_to_mae", "mae_before_mfe",
     "delta_1m", "delta_3m", "delta_5m", "delta_10m", "delta_15m", "delta_30m",
     "delta_60m",
-    "final_delta_ticks", "window_end", "right_censored", "window_minutes",
-    "finalize_reason",
+    "final_delta_ticks", "final_price",
+    "window_end_scheduled",   # signal_time + window_minutes (uncut target)
+    "window_end_actual",      # actual finalization time (last in-window tick)
+    "right_censored", "window_minutes", "finalize_reason",
 ]
 
 # Full ordered column list, exactly as written by SignalLogger.cs.
@@ -116,7 +121,7 @@ BOOL_COLUMNS = [
 # Columns that must never be NaN (identity + structural). Label columns MAY be
 # NaN (e.g. a horizon past a right-censor point).
 REQUIRED_NON_NULL = [
-    "signal_id", "run_id", "instrument", "signal_time", "session_date",
+    "signal_id", "run_id", "instrument", "tick_size", "signal_time", "session_date",
     "session_tag", "score", "direction", "is_long", "signal_reference_price",
     "signal_cluster_id",
 ]
@@ -138,8 +143,9 @@ FILTER_COMPONENTS = {
 # ---------------------------------------------------------------------------
 
 BARS_COLUMNS = [
-    "run_id", "instrument", "bar_period", "bar_time", "session_date",
-    "session_tag", "open", "high", "low", "close", "volume",
+    "run_id", "instrument", "instrument_master", "expiry", "tick_size",
+    "bar_period", "bar_time", "session_date", "session_tag",
+    "open", "high", "low", "close", "volume",
 ]
 
 # ---------------------------------------------------------------------------

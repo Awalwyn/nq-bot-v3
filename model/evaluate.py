@@ -102,18 +102,20 @@ def replay(signals: pd.DataFrame, bars: pd.DataFrame, decide) -> pd.DataFrame:
 
     s = signals.copy()
     s["signal_time"] = pd.to_datetime(s["signal_time"], errors="coerce")
-    s["window_end"] = pd.to_datetime(s["window_end"], errors="coerce")
+    s["window_end_actual"] = pd.to_datetime(s["window_end_actual"], errors="coerce")
 
     out = []
     for _, r in s.iterrows():
-        lo_i = np.searchsorted(bt, np.datetime64(r["signal_time"]))
-        hi_i = np.searchsorted(bt, np.datetime64(r["window_end"]))
+        # start after the signal bar closes (ref is that bar's close); end at the
+        # observation's actual (possibly censored) window end.
+        lo_i = np.searchsorted(bt, np.datetime64(r["signal_time"]), side="right")
+        hi_i = np.searchsorted(bt, np.datetime64(r["window_end_actual"]), side="right")
         if hi_i <= lo_i:
             continue
         tp_ticks, sl_ticks, timeout_bars = decide(r)
         pnl, reason, held = simulate_trade(
             r["signal_reference_price"], int(r["is_long"]) == 1,
-            hi[lo_i:hi_i + 1], lo[lo_i:hi_i + 1], cl[lo_i:hi_i + 1],
+            hi[lo_i:hi_i], lo[lo_i:hi_i], cl[lo_i:hi_i],
             tp_ticks, sl_ticks, timeout_bars)
         out.append({
             "signal_id": r["signal_id"], "score": r["score"],

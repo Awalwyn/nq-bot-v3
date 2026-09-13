@@ -32,7 +32,7 @@ from data_pipeline import schema  # noqa: E402
 
 
 # Regression targets the plan calls for (the "three heads"). Meta label columns
-# (window_end, right_censored, finalize_reason, window_minutes) are NOT targets.
+# (window_end_scheduled, window_end_actual, final_price, right_censored, finalize_reason, window_minutes) are NOT targets.
 NUMERIC_TARGETS = [
     "mfe_ticks", "mae_ticks", "minutes_to_mfe", "minutes_to_mae",
     "final_delta_ticks",

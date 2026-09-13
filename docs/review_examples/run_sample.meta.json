@@ -1,0 +1,29 @@
+{
+  "run_id": "run_sample",
+  "created_utc": "2024-06-03T21:00:00Z",
+  "logger": "sample-generator",
+  "instrument_full": "NQ 12-26",
+  "instrument_master": "NQ",
+  "expiry": "2026-12-19",
+  "tick_size": 0.25,
+  "bar_period": "15s",
+  "timezone_id": "US Eastern Standard Time",
+  "rth_start": 930,
+  "rth_end": 1600,
+  "classifier_session_start": 830,
+  "classifier_session_end": 1500,
+  "min_abs_score": 4,
+  "max_abs_score": 8,
+  "window_minutes": 60,
+  "cut_at_rth_close": true,
+  "log_all_sessions": true,
+  "horizon_minutes": [
+    1,
+    3,
+    5,
+    10,
+    15,
+    30,
+    60
+  ]
+}
