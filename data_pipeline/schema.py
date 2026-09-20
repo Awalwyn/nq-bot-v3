@@ -91,6 +91,7 @@ LABEL = [
     "window_end_scheduled",   # signal_time + window_minutes (uncut target)
     "window_end_actual",      # actual finalization time (last in-window tick)
     "right_censored", "window_minutes", "finalize_reason",
+    "tick_updates",           # in-window tick updates seen; data-fidelity signal
 ]
 
 # Full ordered column list, exactly as written by SignalLogger.cs.
@@ -163,3 +164,29 @@ FORBIDDEN_AS_FEATURES = set(LABEL)
 VALID_SESSION_TAGS = {"RTH", "OVERNIGHT"}
 SCORE_MIN_ABS_DEFAULT = 4
 SCORE_MAX_ABS_DEFAULT = 8
+
+# ---------------------------------------------------------------------------
+# Strict-validation contracts (review round 3 — validator hardening)
+# ---------------------------------------------------------------------------
+
+# Keys the run metadata MUST carry for strict (pilot / production) validation.
+# The logger writes all of these; strict mode errors if any are absent.
+META_REQUIRED_KEYS = [
+    "run_id", "instrument_full", "tick_size", "bar_period", "timezone_id",
+    "min_abs_score", "max_abs_score", "window_minutes",
+    "completion_status", "signal_count", "bar_count",
+    "signal_write_errors", "bar_write_errors",
+]
+
+# A run is only acceptable to strict validation when it finished cleanly.
+META_COMPLETION_OK = "completed"
+
+# signal_reference_price must equal the signal bar's close within this many
+# ticks. It IS that close by construction, so any real drift is a logging bug.
+REF_PRICE_TOLERANCE_TICKS = 0.5
+
+# Bar columns that must be present and non-null on every row.
+BARS_REQUIRED_NON_NULL = [
+    "run_id", "instrument", "bar_period", "tick_size", "bar_time",
+    "open", "high", "low", "close", "volume",
+]

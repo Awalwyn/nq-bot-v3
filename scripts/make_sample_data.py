@@ -38,11 +38,14 @@ def build(seed, n_signals):
     n_bars = int(7.0 * 60 * BPM)  # 7 hours
     times = [start + dt.timedelta(seconds=15 * i) for i in range(n_bars)]
     close = 19000.0 + rng.normal(0, 0.75, n_bars).cumsum() * TICK
-    wick = np.abs(rng.normal(0, 2.0, n_bars)) * TICK
-    hi = np.round((close + wick) / TICK) * TICK
-    lo = np.round((close - wick) / TICK) * TICK
     cl = np.round(close / TICK) * TICK
-    op = np.concatenate([[cl[0]], cl[:-1]])
+    op = np.concatenate([[cl[0]], cl[:-1]])          # open = prior close
+    wick = np.abs(rng.normal(0, 2.0, n_bars)) * TICK
+    # high/low must bracket BOTH open and close, or OHLC is invalid
+    top = np.maximum(op, cl)
+    bot = np.minimum(op, cl)
+    hi = np.round((top + wick) / TICK) * TICK
+    lo = np.round((bot - wick) / TICK) * TICK
 
     bars = pd.DataFrame({
         "run_id": RUN_ID, "instrument": INSTRUMENT, "instrument_master": MASTER,
@@ -145,6 +148,8 @@ def build(seed, n_signals):
             "window_end_scheduled": scheduled.strftime("%Y-%m-%dT%H:%M:%S"),
             "window_end_actual": actual_end.strftime("%Y-%m-%dT%H:%M:%S"),
             "right_censored": censored, "window_minutes": WMIN, "finalize_reason": reason,
+            "tick_updates": int(max(1, ((actual_end - t).total_seconds() / 60.0) *
+                                    (rng.uniform(30, 120) if _in_rth(t) else rng.uniform(5, 20)))),
         })
         r.update(horizons)
         rows.append(r)
@@ -153,7 +158,7 @@ def build(seed, n_signals):
     return sig, bars
 
 
-def write_meta(out):
+def write_meta(out, n_signals, n_bars):
     meta = {
         "run_id": RUN_ID, "created_utc": "2024-06-03T21:00:00Z", "logger": "sample-generator",
         "instrument_full": INSTRUMENT, "instrument_master": MASTER, "expiry": EXPIRY,
@@ -162,6 +167,10 @@ def write_meta(out):
         "classifier_session_start": 830, "classifier_session_end": 1500,
         "min_abs_score": 4, "max_abs_score": 8, "window_minutes": WMIN,
         "cut_at_rth_close": True, "log_all_sessions": True,
+        # clean-completion metadata (validator rev 3 strict mode)
+        "completion_status": "completed",
+        "signal_count": int(n_signals), "bar_count": int(n_bars),
+        "signal_write_errors": 0, "bar_write_errors": 0,
         "horizon_minutes": list(schema.HORIZON_COLUMNS.values()),
     }
     json.dump(meta, open(os.path.join(out, RUN_ID + ".meta.json"), "w"), indent=2)
@@ -177,7 +186,7 @@ def main():
     sig, bars = build(args.seed, args.n)
     sig.to_csv(os.path.join(args.out, f"signals_{RUN_ID}.csv"), index=False)
     bars.to_csv(os.path.join(args.out, f"bars_{RUN_ID}.csv"), index=False)
-    write_meta(args.out)
+    write_meta(args.out, len(sig), len(bars))
     print(f"wrote {len(sig)} signals, {len(bars)} bars, meta -> {args.out}")
     print("finalize_reason mix:", sig["finalize_reason"].value_counts().to_dict())
 

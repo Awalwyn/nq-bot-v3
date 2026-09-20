@@ -98,6 +98,13 @@ namespace NinjaTrader.NinjaScript.Indicators
         private string barPeriodStr = "15s";
         private int loggedCount = 0;
 
+        // write-integrity accounting (review round 3, fix 3)
+        private int signalRowsWritten = 0;
+        private int barRowsWritten = 0;
+        private int signalWriteErrors = 0;
+        private int barWriteErrors = 0;
+        private bool runCompleted = false;
+
         private static readonly int[] HorizonMinutes = new int[] { 1, 3, 5, 10, 15, 30, 60 };
 
         // ============================ SETTINGS ==============================
@@ -263,6 +270,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             else if (State == State.Terminated)
             {
                 FinalizeAllOpen("terminated");   // incomplete windows -> right-censored
+                runCompleted = true;
+                WriteMeta();                     // rewrite meta: completion status + final counts
                 CloseWriters();
             }
         }
@@ -481,6 +490,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 if (favTicks > o.MfeTicks) { o.MfeTicks = favTicks; o.MinutesToMfe = (tickTime - o.SignalTime).TotalMinutes; }
                 if (advTicks > o.MaeTicks) { o.MaeTicks = advTicks; o.MinutesToMae = (tickTime - o.SignalTime).TotalMinutes; }
                 o.SeenAnyTick = true;
+                o.TickUpdates++;
                 o.LastInWindowPrice = price;
                 o.LastInWindowTime = tickTime;
 
@@ -513,8 +523,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             o.MaeBeforeMfe = tMae < tMfe;
 
             if (signalsWriter == null) return;
-            try { signalsWriter.WriteLine(BuildSignalRow(o)); }
-            catch (Exception ex) { Print("SignalLogger: row write failed: " + ex.Message); }
+            try { signalsWriter.WriteLine(BuildSignalRow(o)); signalRowsWritten++; }
+            catch (Exception ex) { signalWriteErrors++; Print("SignalLogger: SIGNAL row write failed: " + ex.Message); }
         }
 
         private void FinalizeAllOpen(string reason)
@@ -690,6 +700,15 @@ namespace NinjaTrader.NinjaScript.Indicators
                 sb.AppendLine("  \"window_minutes\": " + WindowMinutes + ",");
                 sb.AppendLine("  \"cut_at_rth_close\": " + (CutAtRthClose ? "true" : "false") + ",");
                 sb.AppendLine("  \"log_all_sessions\": " + (LogAllSessions ? "true" : "false") + ",");
+                // completion accounting (review round 3, fix 3). Written once at
+                // open (status "running", zero counts) and rewritten on clean
+                // Terminate (status "completed", final counts). Strict validation
+                // rejects any run not "completed" or with write errors.
+                sb.AppendLine("  \"completion_status\": " + J(runCompleted ? "completed" : "running") + ",");
+                sb.AppendLine("  \"signal_count\": " + signalRowsWritten + ",");
+                sb.AppendLine("  \"bar_count\": " + barRowsWritten + ",");
+                sb.AppendLine("  \"signal_write_errors\": " + signalWriteErrors + ",");
+                sb.AppendLine("  \"bar_write_errors\": " + barWriteErrors + ",");
                 sb.AppendLine("  \"horizon_minutes\": [" + string.Join(",", HorizonMinutes) + "]");
                 sb.AppendLine("}");
                 File.WriteAllText(metaPath, sb.ToString());
@@ -711,8 +730,16 @@ namespace NinjaTrader.NinjaScript.Indicators
                     SessionDateFor(t),
                     IsInSession(t, RthStart, RthEnd) ? "RTH" : "OVERNIGHT",
                     F(Open[0]), F(High[0]), F(Low[0]), F(Close[0]), F(Volume[0])));
+                barRowsWritten++;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // fix 3: do NOT swallow. Count it and surface it; the run's meta
+                // will report bar_write_errors > 0 so strict validation fails.
+                barWriteErrors++;
+                if (barWriteErrors <= 10)
+                    Print("SignalLogger: BAR row write failed: " + ex.Message);
+            }
         }
 
         private void CloseWriters()
@@ -742,7 +769,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             sb.Append("candle_run,body_to_range,volume,volume_ratio,bar_range_ticks,");
             sb.Append("mfe_ticks,mae_ticks,minutes_to_mfe,minutes_to_mae,mae_before_mfe,");
             sb.Append("delta_1m,delta_3m,delta_5m,delta_10m,delta_15m,delta_30m,delta_60m,");
-            sb.Append("final_delta_ticks,final_price,window_end_scheduled,window_end_actual,right_censored,window_minutes,finalize_reason");
+            sb.Append("final_delta_ticks,final_price,window_end_scheduled,window_end_actual,right_censored,window_minutes,finalize_reason,tick_updates");
             return sb.ToString();
         }
 
@@ -791,7 +818,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             Add(sb, o.WindowEndActual.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture));
             Add(sb, o.RightCensored ? "1" : "0");
             Add(sb, WindowMinutes.ToString(CultureInfo.InvariantCulture));
-            sb.Append(o.FinalizeReason);
+            Add(sb, o.FinalizeReason);
+            sb.Append(o.TickUpdates.ToString(CultureInfo.InvariantCulture));
             return sb.ToString();
         }
 
@@ -835,6 +863,7 @@ namespace NinjaTrader.NinjaScript.Indicators
             public double MfeTicks, MaeTicks, MinutesToMfe = double.NaN, MinutesToMae = double.NaN, FinalDeltaTicks = double.NaN;
             public double[] HorizonDeltaTicks;
             public bool MaeBeforeMfe, SeenAnyTick, RightCensored, CutByRthClose;
+            public int TickUpdates;   // in-window tick updates seen (data-fidelity signal)
             public DateTime WindowEnd, WindowEndScheduled, WindowEndActual, LastInWindowTime;
             public double LastInWindowPrice = double.NaN, FinalPrice = double.NaN;
             public string FinalizeReason = "";
