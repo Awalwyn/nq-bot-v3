@@ -24,7 +24,7 @@ INSTRUMENT = "NQ 12-26"
 MASTER = "NQ"
 EXPIRY = "2026-12-19"
 RUN_ID = "run_sample"
-RTH_START, RTH_END = 930, 1600
+RTH_START, RTH_END = 830, 1500
 
 
 def _hhmm(t): return t.hour * 100 + t.minute
@@ -57,7 +57,7 @@ def build(seed, n_signals):
         "volume": rng.integers(50, 400, n_bars),
     })[schema.BARS_COLUMNS]
 
-    rth_close_dt = dt.datetime(2024, 6, 3, 16, 0, 0)
+    rth_close_dt = dt.datetime(2024, 6, 3, RTH_END // 100, RTH_END % 100, 0)
     last_bar_dt = times[-1]
 
     # choose signal bars: spread across the day, plus a few late for censoring
@@ -71,7 +71,7 @@ def build(seed, n_signals):
         scheduled = t + dt.timedelta(minutes=WMIN)
 
         # effective end + reason (mirrors logger semantics)
-        if _in_rth(t) and scheduled > rth_close_dt:
+        if _in_rth(t) and scheduled > rth_close_dt and t < rth_close_dt:
             actual_end, reason, censored = rth_close_dt, "rth_close", 1
         elif scheduled > last_bar_dt:
             actual_end, reason, censored = last_bar_dt, "terminated", 1
@@ -158,19 +158,33 @@ def build(seed, n_signals):
     return sig, bars
 
 
-def write_meta(out, n_signals, n_bars):
+def write_meta(out, sig, bars):
+    n_signals, n_bars = len(sig), len(bars)
+    first_bar = str(bars["bar_time"].min()) if n_bars else ""
+    last_bar = str(bars["bar_time"].max()) if n_bars else ""
     meta = {
-        "run_id": RUN_ID, "created_utc": "2024-06-03T21:00:00Z", "logger": "sample-generator",
+        "run_id": RUN_ID, "created_utc": "2024-06-03T13:00:00Z",
+        "completed_utc": "2024-06-03T21:00:00Z", "logger": "sample-generator",
         "instrument_full": INSTRUMENT, "instrument_master": MASTER, "expiry": EXPIRY,
         "tick_size": TICK, "bar_period": "15s", "timezone_id": "US Eastern Standard Time",
+        "trading_hours_template": "CME US Index Futures ETH",
         "rth_start": RTH_START, "rth_end": RTH_END,
         "classifier_session_start": 830, "classifier_session_end": 1500,
+        "neighbors_count": 8, "max_bars_back": 2000,
         "min_abs_score": 4, "max_abs_score": 8, "window_minutes": WMIN,
-        "cut_at_rth_close": True, "log_all_sessions": True,
-        # clean-completion metadata (validator rev 3 strict mode)
-        "completion_status": "completed",
+        "cut_at_rth_close": True, "log_all_sessions": True, "write_bars_file": True,
+        "show_markers": True,
+        "comp_use_volatility": True, "comp_use_regime": True, "regime_threshold": 0.0,
+        "comp_use_adx": True, "adx_threshold": 20, "comp_use_ema200": True,
+        "comp_use_ema800": True, "comp_use_sma200": True, "comp_use_kernel": True,
+        "kernel_smoothing": False, "kernel_h": 8, "kernel_r": 8.0, "kernel_x": 25, "kernel_lag": 2,
+        "first_bar_time": first_bar, "last_bar_time": last_bar,
+        "first_tick_time": first_bar, "last_tick_time": last_bar,
+        # clean-completion metadata (validator strict mode)
+        "completion_status": "completed", "termination_reason": "clean_shutdown",
         "signal_count": int(n_signals), "bar_count": int(n_bars),
-        "signal_write_errors": 0, "bar_write_errors": 0,
+        "tick_count": int(sig["tick_updates"].sum()),
+        "signal_write_errors": 0, "bar_write_errors": 0, "close_write_errors": 0,
         "horizon_minutes": list(schema.HORIZON_COLUMNS.values()),
     }
     json.dump(meta, open(os.path.join(out, RUN_ID + ".meta.json"), "w"), indent=2)
@@ -186,7 +200,7 @@ def main():
     sig, bars = build(args.seed, args.n)
     sig.to_csv(os.path.join(args.out, f"signals_{RUN_ID}.csv"), index=False)
     bars.to_csv(os.path.join(args.out, f"bars_{RUN_ID}.csv"), index=False)
-    write_meta(args.out, len(sig), len(bars))
+    write_meta(args.out, sig, bars)
     print(f"wrote {len(sig)} signals, {len(bars)} bars, meta -> {args.out}")
     print("finalize_reason mix:", sig["finalize_reason"].value_counts().to_dict())
 

@@ -172,11 +172,53 @@ SCORE_MAX_ABS_DEFAULT = 8
 # Keys the run metadata MUST carry for strict (pilot / production) validation.
 # The logger writes all of these; strict mode errors if any are absent.
 META_REQUIRED_KEYS = [
-    "run_id", "instrument_full", "tick_size", "bar_period", "timezone_id",
-    "min_abs_score", "max_abs_score", "window_minutes",
-    "completion_status", "signal_count", "bar_count",
-    "signal_write_errors", "bar_write_errors",
+    "run_id", "instrument_full", "instrument_master", "tick_size", "bar_period",
+    "timezone_id", "trading_hours_template", "min_abs_score", "max_abs_score",
+    "window_minutes", "created_utc", "completed_utc", "completion_status",
+    "termination_reason", "signal_count", "bar_count", "tick_count",
+    "signal_write_errors", "bar_write_errors", "close_write_errors",
+    "first_bar_time", "last_bar_time", "first_tick_time", "last_tick_time",
 ]
+
+# The value each run is expected to have collected on. A run on any other
+# timeframe (e.g. a 15-minute chart) fails strict validation.
+EXPECTED_BAR_PERIOD = "15s"
+
+# Locked pilot configuration. Under --pilot, the run metadata must match all of
+# these exactly, so a fully self-consistent but wrong-config dataset (e.g. a
+# 15-minute run) cannot pass just because its three files agree with each other.
+PILOT_CONFIG = {
+    "instrument_master": "NQ",
+    "tick_size": 0.25,
+    "bar_period": "15s",
+    "min_abs_score": 4,
+    "max_abs_score": 8,
+    "window_minutes": 60,
+    "cut_at_rth_close": True,
+    "log_all_sessions": True,
+    "write_bars_file": True,
+    "rth_start": 830,
+    "rth_end": 1500,
+    "classifier_session_start": 830,
+    "classifier_session_end": 1500,
+    "neighbors_count": 8,
+    "max_bars_back": 2000,
+}
+
+# The exact Trading Hours template the live bot uses. Chart timezone is Central;
+# the entry model runs 08:30–15:00 CT, so the logger RTH is 0830–1500 to match.
+EXPECTED_TRADING_HOURS_TEMPLATE = "CME US Index Futures ETH"
+
+# Pilot fails if the median tick activity is below this (tick updates per
+# window-minute). Documented threshold rather than eyeballing the output.
+PILOT_MIN_TICKS_PER_MIN = 2.0
+
+# Allowed enumerations — anything else is a corrupted/fabricated value.
+VALID_FINALIZE_REASONS = {"window_complete", "rth_close", "terminated"}
+VALID_DIRECTIONS = {"long", "short"}
+
+# final_delta_ticks must equal (final_price - reference)/tick * dir within this.
+FINAL_DELTA_TOLERANCE_TICKS = 0.5
 
 # A run is only acceptable to strict validation when it finished cleanly.
 META_COMPLETION_OK = "completed"

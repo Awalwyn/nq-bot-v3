@@ -43,7 +43,9 @@ The reason: NinjaTrader (which builds the features and produces the training dat
 ### On the ThinkPad (execution)
 ```
 C:\nqbotv3\
-├─ repo\                  <- git clone of the same repo (pull-only; you don't edit here)
+└─ repo\                  <- git clone of the same repo (pull-only; you don't edit here)
+
+C:\ProgramData\nqbotv3\   <- data lives here: never OneDrive-synced, always present, writable
 ├─ data\
 │   ├─ training\          <- signals_*.csv and bars_*.csv land HERE
 │   └─ context\           <- daily_context.json (later)
@@ -66,7 +68,7 @@ C:\Users\<you>\Documents\NinjaTrader 8\bin\Custom\Indicators\
 1. NinjaTrader 8 — already installed (v2 runs on it).
 2. Install git for Windows and `uv` (`powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`).
 3. `git clone` the repo to `C:\nqbotv3\repo\`.
-4. Create the data folders: `C:\nqbotv3\data\training\` and `C:\nqbotv3\data\context\`.
+4. Create the data folders: `C:\ProgramData\nqbotv3\data\training\` and `C:\ProgramData\nqbotv3\data\context\`.
 5. Confirm the three v2 classifier files are present and compiling in NinjaTrader (they already are, since v2 runs): `MLLorentzianClassification.cs`, `MLExtensionsLib.cs`, `KernelFunctionsLib.cs`. **`SignalLogger.cs` will not compile without them.**
 
 ---
@@ -103,9 +105,9 @@ C:\Users\<you>\Documents\NinjaTrader 8\bin\Custom\Indicators\
 
 | File | What it is | Where |
 |---|---|---|
-| `signals_<run_id>.csv` | One row per observation: full feature snapshot + labels + cluster/filter/execution fields. | `C:\nqbotv3\data\training\` |
-| `bars_<run_id>.csv` | Every 15s OHLCV logged once. Join on the 60-min window to reconstruct any path. | `C:\nqbotv3\data\training\` |
-| `daily_context.json` *(later)* | Premarket bias-engine context. | `C:\nqbotv3\data\context\` |
+| `signals_<run_id>.csv` | One row per observation: full feature snapshot + labels + cluster/filter/execution fields. | `C:\ProgramData\nqbotv3\data\training\` |
+| `bars_<run_id>.csv` | Every 15s OHLCV logged once. Join on the 60-min window to reconstruct any path. | `C:\ProgramData\nqbotv3\data\training\` |
+| `daily_context.json` *(later)* | Premarket bias-engine context. | `C:\ProgramData\nqbotv3\data\context\` |
 
 > **Data never goes in git.** It's big and machine-specific. Back it up separately (copy to an external drive or a cloud folder). Add `data/` to `.gitignore`.
 
@@ -164,10 +166,10 @@ The repo copy stays clean; NinjaTrader mangles only its own copy in the `Custom\
    - Min/Max |Score| = 4 / 8
    - Forward Window Minutes = 60
    - Log All Sessions = true (tag RTH/Overnight)
-   - Output Folder = `C:\nqbotv3\data\training`
+   - Output Folder = `C:\ProgramData\nqbotv3\data\training`
    - Write Bars File = true
 6. To **backfill history**, run it in **replay** (Control Center → New → Playback, load 12–24 months of NQ) or load a long historical range on the chart so `OnBarUpdate` walks the past bars.
-7. Watch `C:\nqbotv3\data\training\` — you should see `signals_run_*.csv` and `bars_run_*.csv` appear and grow. (Files flush on every row, so you can open them mid-run.)
+7. Watch `C:\ProgramData\nqbotv3\data\training\` — you should see `signals_run_*.csv` and `bars_run_*.csv` appear and grow. (Files flush on every row, so you can open them mid-run.)
 8. When the run finishes, **validate before trusting the data:** run `validate.py` (next deliverable) on the ThinkPad against those two files. Only then look at distributions / start training.
 
 **Back on the Mac**

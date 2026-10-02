@@ -47,8 +47,8 @@ Full click-by-click is in `Matthew_Phase1_Runbook.docx`. This is the summary.
 
 - `regime.NormalizedSlopeDecline` resolves to the real property (it compiles
   behind a try/catch; confirm the value isn't silently blank).
-- `timezone_id` resolves as expected — the 0930 (logger) vs 0830 (classifier)
-  question. Read it from the `.meta.json`.
+- `timezone_id` / `trading_hours_template` resolve as expected — chart is Central,
+  template `CME US Index Futures ETH`, logger RTH 0830–1500. Read from `.meta.json`.
 - Removing the indicator fires a clean `State.Terminated`, so the metadata flips
   to `completion_status: completed`. Check the meta says `completed` afterward.
 
@@ -56,13 +56,10 @@ Full click-by-click is in `Matthew_Phase1_Runbook.docx`. This is the summary.
 
 - SignalLogger compiles with 0 errors.
 - The three files share one `run_id` and one full contract identity.
-- Strict validation returns 0 errors.
+- Strict `--pilot` validation returns 0 errors.
 - `tick_updates` confirms real ticks fed the labels (not synthesized).
-- `tick_updates` confirms real ticks fed the labels (not synthesized).
-- `tick_updates` confirms real ticks fed the labels (not synthesized).
-- The metadata timezone and the 0930–1600 logger session are confirmed against
-  NinjaTrader time values.
-- The classifier's 0830–1500 is confirmed as the intended market hours.
+- Session is confirmed Central Time: logger RTH 0830–1500 and the classifier's
+  0830–1500 agree against the chart clock (template `CME US Index Futures ETH`).
 - A manual sample of signals matches the chart (time, direction, score,
   reference close, MFE, MAE, horizons, censoring).
 - No post-window price affects any label.

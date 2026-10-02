@@ -49,9 +49,9 @@ cd C:\nqbotv3\repo
 ## 3. Create the data folders
 
 ```powershell
-mkdir C:\nqbotv3\data\training -Force
-mkdir C:\nqbotv3\data\context  -Force
-mkdir C:\nqbotv3\models         -Force
+mkdir C:\ProgramData\nqbotv3\data\training -Force
+mkdir C:\ProgramData\nqbotv3\data\context  -Force
+mkdir C:\ProgramData\nqbotv3\models         -Force
 ```
 
 ---
@@ -65,13 +65,13 @@ uv sync
 
 Smoke-test that the pipeline code runs before there's any real data:
 ```powershell
-uv run python scripts\make_sample_data.py --out C:\nqbotv3\data\training
-uv run python -m data_pipeline.validate --dir C:\nqbotv3\data\training
+uv run python scripts\make_sample_data.py --out C:\ProgramData\nqbotv3\data\training
+uv run python -m data_pipeline.validate --dir C:\ProgramData\nqbotv3\data\training
 ```
 You should see `PASSED`. Then delete the sample files so they don't mix with
 real data:
 ```powershell
-del C:\nqbotv3\data\training\*sample*
+del C:\ProgramData\nqbotv3\data\training\*sample*
 ```
 
 ---
@@ -109,11 +109,11 @@ press **F5** to compile. Watch the Output window for errors.
    - Min/Max |Score| = 4 / 8
    - Forward Window Minutes = 60
    - Log All Sessions = true
-   - Output Folder = `C:\nqbotv3\data\training`
+   - Output Folder = `C:\ProgramData\nqbotv3\data\training`
    - Write Bars File = true
 3. Backfill via **Control Center → New → Playback**, load 12–24 months of NQ,
    or load a long historical range on the chart so it walks the past bars.
-4. Watch `C:\nqbotv3\data\training\` — `signals_run_*.csv` and `bars_run_*.csv`
+4. Watch `C:\ProgramData\nqbotv3\data\training\` — `signals_run_*.csv` and `bars_run_*.csv`
    appear and grow (they flush every row, so you can open them mid-run).
 
 ---
@@ -122,7 +122,7 @@ press **F5** to compile. Watch the Output window for errors.
 
 ```powershell
 cd C:\nqbotv3\repo
-uv run python -m data_pipeline.validate --dir "C:\nqbotv3\data\training"
+uv run python -m data_pipeline.validate --dir "C:\ProgramData\nqbotv3\data\training"
 ```
 Only move on to distributions / training once this prints `PASSED`.
 

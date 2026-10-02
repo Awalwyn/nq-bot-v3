@@ -103,7 +103,18 @@ namespace NinjaTrader.NinjaScript.Indicators
         private int barRowsWritten = 0;
         private int signalWriteErrors = 0;
         private int barWriteErrors = 0;
+        private int closeWriteErrors = 0;                 // flush/close failures (surfaced, not swallowed)
         private bool runCompleted = false;
+        private string completionStatus = "running";      // running | completed | failed
+        private string terminationReason = "";
+        private long tickCount = 0;                        // total secondary-series ticks seen
+        private bool writersOpened = false;               // init guard for State.Terminated
+        private SessionIterator sessionIterator;          // trading-day calendar for session_date
+        private string createdUtc = "";                   // captured ONCE at open, preserved on rewrite
+        private string completedUtc = "";                 // distinct completion timestamp
+        private string tradingHoursTemplate = "unknown";  // Bars.TradingHours.Name
+        private DateTime firstBarTime = DateTime.MinValue, lastBarTime = DateTime.MinValue;
+        private DateTime firstTickTime = DateTime.MinValue, lastTickTime = DateTime.MinValue;
 
         private static readonly int[] HorizonMinutes = new int[] { 1, 3, 5, 10, 15, 30, 60 };
 
@@ -215,10 +226,10 @@ namespace NinjaTrader.NinjaScript.Indicators
                 WindowMinutes = 60;
                 CutAtRthClose = true;
                 LogAllSessions = true;
-                RthStart = 930;
-                RthEnd = 1600;
+                RthStart = 830;    // 08:30 CT — matches the entry model's session (chart tz = Central)
+                RthEnd = 1500;     // 15:00 CT
 
-                OutputFolder = @"C:\nqbotv3\data\training";
+                OutputFolder = @"C:\ProgramData\nqbotv3\data\training";  // ProgramData: never OneDrive-synced, always present, writable
                 WriteBarsFile = true;
                 ShowMarkers = false;
 
@@ -265,14 +276,22 @@ namespace NinjaTrader.NinjaScript.Indicators
                 volAvg        = SMA(VOL(), 20);
                 regime        = new RegimeFilterState();
 
+                try { sessionIterator = new SessionIterator(BarsArray[0]); }
+                catch (Exception ex) { sessionIterator = null; Print("SignalLogger: SessionIterator init failed: " + ex.Message); }
+
                 OpenWriters();
             }
             else if (State == State.Terminated)
             {
+                if (!writersOpened) { terminationReason = "not_initialized"; return; }  // temp instance — write nothing
                 FinalizeAllOpen("terminated");   // incomplete windows -> right-censored
-                runCompleted = true;
-                WriteMeta();                     // rewrite meta: completion status + final counts
-                CloseWriters();
+                CloseWriters();                  // flush+close first; records close errors
+                bool clean = (signalWriteErrors == 0 && barWriteErrors == 0 && closeWriteErrors == 0);
+                runCompleted = clean;
+                completionStatus = clean ? "completed" : "failed";   // never "completed" if a write/close failed
+                terminationReason = clean ? "clean_shutdown" : "write_or_close_error";
+                completedUtc = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
+                WriteMeta();                     // final metadata reflects true status + errors + counts
             }
         }
 
@@ -282,7 +301,11 @@ namespace NinjaTrader.NinjaScript.Indicators
             if (BarsInProgress == 1)
             {
                 if (CurrentBars[1] < 0) return;
-                UpdateOpenObservations(Closes[1][0], Times[1][0]);
+                DateTime tkt = Times[1][0];
+                tickCount++;
+                if (firstTickTime == DateTime.MinValue) firstTickTime = tkt;
+                lastTickTime = tkt;
+                UpdateOpenObservations(Closes[1][0], tkt);
                 return;
             }
             if (BarsInProgress != 0) return;
@@ -598,7 +621,20 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private string SessionDateFor(DateTime t)
         {
-            return t.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            // Trading-day convention: overnight/Globex bars belong to the NEXT
+            // RTH session's date, not the calendar date. NinjaTrader exposes this
+            // via SessionIterator.GetTradingDay (handles holidays/DST/breaks).
+            try
+            {
+                if (sessionIterator != null)
+                    return sessionIterator.GetTradingDay(t)
+                             .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            }
+            catch { }
+            // Fallback: anything at/after RTH end rolls to the next calendar day.
+            DateTime d = t;
+            if (t.Hour * 100 + t.Minute >= RthEnd) d = t.AddDays(1);
+            return d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
         }
 
         private double MinutesSinceRthOpen(DateTime t)
@@ -625,7 +661,13 @@ namespace NinjaTrader.NinjaScript.Indicators
             }
         }
 
-        private double CurrentVwap() { return vwapCumV > 0 ? vwapCumPV / vwapCumV : double.NaN; }
+        private double CurrentVwap()
+        {
+            // RTH VWAP is only meaningful inside RTH. Outside RTH we return NaN
+            // rather than silently carrying the prior session's stale value.
+            if (!IsInSession(Time[0], RthStart, RthEnd)) return double.NaN;
+            return vwapCumV > 0 ? vwapCumPV / vwapCumV : double.NaN;
+        }
 
         private void UpdateCandleRun()
         {
@@ -648,6 +690,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 tickSizeVal      = (Instrument != null && Instrument.MasterInstrument != null) ? Instrument.MasterInstrument.TickSize : TickSize;
                 try { timezoneId = (Bars != null && Bars.TradingHours != null && Bars.TradingHours.TimeZoneInfo != null) ? Bars.TradingHours.TimeZoneInfo.Id : "unknown"; }
                 catch { timezoneId = "unknown"; }
+                try { tradingHoursTemplate = (Bars != null && Bars.TradingHours != null) ? Bars.TradingHours.Name : "unknown"; }
+                catch { tradingHoursTemplate = "unknown"; }
+                createdUtc = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
 
                 barPeriodStr = string.Format(CultureInfo.InvariantCulture, "{0}{1}",
                     BarsPeriod.Value, BarsPeriod.BarsPeriodType == BarsPeriodType.Second ? "s"
@@ -670,9 +715,19 @@ namespace NinjaTrader.NinjaScript.Indicators
                 }
 
                 WriteMeta();
+                writersOpened = true;
                 Print("SignalLogger: writing " + sigPath);
             }
-            catch (Exception ex) { Print("SignalLogger: FAILED to open writers: " + ex.Message); }
+            catch (Exception ex)
+            {
+                // partial init: close anything that did open, mark failed, keep writersOpened=false
+                Print("SignalLogger: FAILED to open writers: " + ex);
+                try { if (signalsWriter != null) { signalsWriter.Close(); signalsWriter = null; } } catch { }
+                try { if (barsWriter != null) { barsWriter.Close(); barsWriter = null; } } catch { }
+                completionStatus = "failed";
+                terminationReason = "init_failed";
+                writersOpened = false;
+            }
         }
 
         private void WriteMeta()
@@ -683,32 +738,56 @@ namespace NinjaTrader.NinjaScript.Indicators
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine("{");
                 sb.AppendLine("  \"run_id\": " + J(runId) + ",");
-                sb.AppendLine("  \"created_utc\": " + J(DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)) + ",");
-                sb.AppendLine("  \"logger\": \"SignalLogger rev2\",");
+                sb.AppendLine("  \"created_utc\": " + J(createdUtc) + ",");
+                sb.AppendLine("  \"completed_utc\": " + J(completedUtc) + ",");
+                sb.AppendLine("  \"logger\": \"SignalLogger rev3\",");
                 sb.AppendLine("  \"instrument_full\": " + J(instrumentFull) + ",");
                 sb.AppendLine("  \"instrument_master\": " + J(instrumentMaster) + ",");
                 sb.AppendLine("  \"expiry\": " + J(expiryStr) + ",");
                 sb.AppendLine("  \"tick_size\": " + tickSizeVal.ToString(CultureInfo.InvariantCulture) + ",");
                 sb.AppendLine("  \"bar_period\": " + J(barPeriodStr) + ",");
                 sb.AppendLine("  \"timezone_id\": " + J(timezoneId) + ",");
+                sb.AppendLine("  \"trading_hours_template\": " + J(tradingHoursTemplate) + ",");
                 sb.AppendLine("  \"rth_start\": " + RthStart + ",");
                 sb.AppendLine("  \"rth_end\": " + RthEnd + ",");
                 sb.AppendLine("  \"classifier_session_start\": 830,");
                 sb.AppendLine("  \"classifier_session_end\": 1500,");
+                sb.AppendLine("  \"neighbors_count\": " + NeighborsCount + ",");
+                sb.AppendLine("  \"max_bars_back\": " + MaxBarsBack + ",");
                 sb.AppendLine("  \"min_abs_score\": " + MinAbsScore + ",");
                 sb.AppendLine("  \"max_abs_score\": " + MaxAbsScore + ",");
                 sb.AppendLine("  \"window_minutes\": " + WindowMinutes + ",");
                 sb.AppendLine("  \"cut_at_rth_close\": " + (CutAtRthClose ? "true" : "false") + ",");
                 sb.AppendLine("  \"log_all_sessions\": " + (LogAllSessions ? "true" : "false") + ",");
-                // completion accounting (review round 3, fix 3). Written once at
-                // open (status "running", zero counts) and rewritten on clean
-                // Terminate (status "completed", final counts). Strict validation
-                // rejects any run not "completed" or with write errors.
-                sb.AppendLine("  \"completion_status\": " + J(runCompleted ? "completed" : "running") + ",");
+                sb.AppendLine("  \"first_bar_time\": " + J(firstBarTime == DateTime.MinValue ? "" : firstBarTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)) + ",");
+                sb.AppendLine("  \"last_bar_time\": " + J(lastBarTime == DateTime.MinValue ? "" : lastBarTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)) + ",");
+                sb.AppendLine("  \"first_tick_time\": " + J(firstTickTime == DateTime.MinValue ? "" : firstTickTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)) + ",");
+                sb.AppendLine("  \"last_tick_time\": " + J(lastTickTime == DateTime.MinValue ? "" : lastTickTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)) + ",");
+                // completion accounting. created_utc is captured once at open and
+                // preserved here; completed_utc is set only on clean Terminate.
+                // completion_status is "completed" only when every write/close succeeded.
+                sb.AppendLine("  \"completion_status\": " + J(completionStatus) + ",");
+                sb.AppendLine("  \"termination_reason\": " + J(terminationReason) + ",");
                 sb.AppendLine("  \"signal_count\": " + signalRowsWritten + ",");
                 sb.AppendLine("  \"bar_count\": " + barRowsWritten + ",");
+                sb.AppendLine("  \"tick_count\": " + tickCount + ",");
                 sb.AppendLine("  \"signal_write_errors\": " + signalWriteErrors + ",");
                 sb.AppendLine("  \"bar_write_errors\": " + barWriteErrors + ",");
+                sb.AppendLine("  \"close_write_errors\": " + closeWriteErrors + ",");
+                sb.AppendLine("  \"write_bars_file\": " + (WriteBarsFile ? "true" : "false") + ",");
+                sb.AppendLine("  \"show_markers\": " + (ShowMarkers ? "true" : "false") + ",");
+                // full filter / kernel configuration (dataset reproducibility)
+                sb.AppendLine("  \"comp_use_volatility\": " + (CompUseVolatility ? "true" : "false") + ",");
+                sb.AppendLine("  \"comp_use_regime\": " + (CompUseRegime ? "true" : "false") + ",");
+                sb.AppendLine("  \"regime_threshold\": " + RegimeThreshold.ToString(CultureInfo.InvariantCulture) + ",");
+                sb.AppendLine("  \"comp_use_adx\": " + (CompUseAdx ? "true" : "false") + ",");
+                sb.AppendLine("  \"adx_threshold\": " + AdxThreshold + ",");
+                sb.AppendLine("  \"comp_use_ema200\": " + (CompUseEma200 ? "true" : "false") + ",");
+                sb.AppendLine("  \"comp_use_ema800\": " + (CompUseEma800 ? "true" : "false") + ",");
+                sb.AppendLine("  \"comp_use_sma200\": " + (CompUseSma200 ? "true" : "false") + ",");
+                sb.AppendLine("  \"comp_use_kernel\": " + (CompUseKernel ? "true" : "false") + ",");
+                sb.AppendLine("  \"kernel_smoothing\": " + (KernelSmoothing ? "true" : "false") + ",");
+                sb.AppendLine("  \"kernel_h\": " + KernelH + ", \"kernel_r\": " + KernelR.ToString(CultureInfo.InvariantCulture) + ", \"kernel_x\": " + KernelX + ", \"kernel_lag\": " + KernelLag + ",");
                 sb.AppendLine("  \"horizon_minutes\": [" + string.Join(",", HorizonMinutes) + "]");
                 sb.AppendLine("}");
                 File.WriteAllText(metaPath, sb.ToString());
@@ -723,6 +802,8 @@ namespace NinjaTrader.NinjaScript.Indicators
             try
             {
                 DateTime t = Time[0];
+                if (firstBarTime == DateTime.MinValue) firstBarTime = t;
+                lastBarTime = t;
                 barsWriter.WriteLine(string.Join(",",
                     runId, Q(instrumentFull), Q(instrumentMaster), expiryStr,
                     F(tickSizeVal), barPeriodStr,
@@ -744,8 +825,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 
         private void CloseWriters()
         {
-            try { if (signalsWriter != null) { signalsWriter.Flush(); signalsWriter.Close(); signalsWriter = null; } } catch { }
-            try { if (barsWriter != null) { barsWriter.Flush(); barsWriter.Close(); barsWriter = null; } } catch { }
+            try { if (signalsWriter != null) { signalsWriter.Flush(); signalsWriter.Close(); signalsWriter = null; } }
+            catch (Exception ex) { closeWriteErrors++; Print("SignalLogger: signals close failed: " + ex.Message); }
+            try { if (barsWriter != null) { barsWriter.Flush(); barsWriter.Close(); barsWriter = null; } }
+            catch (Exception ex) { closeWriteErrors++; Print("SignalLogger: bars close failed: " + ex.Message); }
         }
 
         private string SignalHeader()
