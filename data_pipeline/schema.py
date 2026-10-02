@@ -209,6 +209,11 @@ PILOT_CONFIG = {
 # the entry model runs 08:30–15:00 CT, so the logger RTH is 0830–1500 to match.
 EXPECTED_TRADING_HOURS_TEMPLATE = "CME US Index Futures ETH"
 
+# The timezone NinjaTrader must record for a Central-time chart. --pilot rejects
+# any other timezone_id (e.g. an Eastern chart would shift the whole session an
+# hour). Confirmed against the real pilot metadata. Override with --expect-timezone.
+EXPECTED_TIMEZONE_ID = "Central Standard Time"
+
 # Pilot fails if the median tick activity is below this (tick updates per
 # window-minute). Documented threshold rather than eyeballing the output.
 PILOT_MIN_TICKS_PER_MIN = 2.0

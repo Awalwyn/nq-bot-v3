@@ -291,20 +291,33 @@ def check_window_coverage(sig, bars, rep):
     if len(bt) == 0:
         rep.err("no parseable bar timestamps for coverage check.")
         return
+    last_bar = bt[-1] if len(bt) else None
     wc = sig[sig["finalize_reason"] == "window_complete"].copy()
     wc["_s"] = pd.to_datetime(wc["signal_time"], errors="coerce")
     wc["_e"] = pd.to_datetime(wc["window_end_actual"], errors="coerce")
-    empty = 0
+    empty = 0; zerolen = 0
     for _, r in wc.iterrows():
+        if pd.isna(r["_e"]) or r["_e"] <= r["_s"]:
+            zerolen += 1
+            continue  # degenerate zero-length window (signal at a session boundary)
+        if last_bar is not None and np.datetime64(r["_e"]) > last_bar:
+            continue  # end-of-run: window extends past the last written bar
         lo_i = np.searchsorted(bt, np.datetime64(r["_s"]), side="right")
-        hi_i = np.searchsorted(bt, np.datetime64(r["_e"]), side="right")
+        hi_i = np.searchsorted(bt, np.datetime64(r["_e"]), side="left") + 1  # include the bar containing wea (close-stamped)
         if hi_i - lo_i <= 0:
             empty += 1
     if empty:
         rep.err(f"{empty} window_complete observation(s) have no covering bars "
                 "(unexplained gap — bars file may be incomplete).")
     else:
-        rep.note(f"window coverage OK ({len(wc)} completed windows all have bars).")
+        msg = f"window coverage OK ({len(wc)} completed windows all have bars)."
+        if zerolen:
+            msg += f" ({zerolen} zero-length boundary window(s) noted.)"
+        rep.note(msg)
+    if zerolen:
+        rep.warn(f"{zerolen} window_complete row(s) have a zero-length window "
+                 "(signal fired at a session/maintenance boundary; no label signal). "
+                 "Consider censoring these in the logger.")
 
 
 # --------------------------------------------------------------------------
@@ -521,8 +534,8 @@ def check_mae_before_mfe(sig, rep):
 
 
 def check_session_tag(sig, meta, rep):
-    lo = int(meta["rth_start"]) if meta and "rth_start" in meta else 930
-    hi = int(meta["rth_end"]) if meta and "rth_end" in meta else 1600
+    lo = int(meta["rth_start"]) if meta and "rth_start" in meta else 830
+    hi = int(meta["rth_end"]) if meta and "rth_end" in meta else 1500
     st = pd.to_datetime(sig["signal_time"], errors="coerce")
     hhmm = st.dt.hour * 100 + st.dt.minute
     in_rth = ((hhmm >= lo) & (hhmm <= hi)) if lo <= hi else ((hhmm >= lo) | (hhmm <= hi))
@@ -569,26 +582,46 @@ def check_final_price_range(sig, bars, rep, sample=1000):
     bt = b["_t"].values
     blo = pd.to_numeric(b["low"], errors="coerce").values
     bhi = pd.to_numeric(b["high"], errors="coerce").values
+    last_bar = bt[-1] if len(bt) else None
     s = sig.copy()
     s["_e"] = pd.to_datetime(s["window_end_actual"], errors="coerce")
+    s["_s"] = pd.to_datetime(s["signal_time"], errors="coerce")
     if len(s) > sample:
         s = s.sample(sample, random_state=0)
-    bad = 0
+    bad = 0; skipped_eor = 0
     for _, r in s.iterrows():
-        j = int(np.searchsorted(bt, np.datetime64(r["_e"]), side="right")) - 1
+        if pd.isna(r["_e"]) or r["_e"] <= r["_s"]:
+            continue  # zero-length window carries no final price to check
+        # end-of-run: the final tick can land after the last WRITTEN bar if the
+        # run stopped mid-interval, so the containing bar was never flushed.
+        if last_bar is not None and np.datetime64(r["_e"]) > last_bar:
+            skipped_eor += 1
+            continue
+        # NinjaTrader stamps each bar at its interval CLOSE, so the bar CONTAINING
+        # a tick time t is the first bar whose timestamp >= t (side=left). A tick
+        # exactly on a grid boundary can belong to the adjacent bar, so accept the
+        # final price within the containing bar OR its immediate neighbours.
+        j = int(np.searchsorted(bt, np.datetime64(r["_e"]), side="left"))
+        if j >= len(bt):
+            j = len(bt) - 1
         if j < 0:
             continue
         tol = 2 * (float(r["tick_size"]) if r.get("tick_size", 0) else 0.25)
-        if r["final_price"] < blo[j] - tol or r["final_price"] > bhi[j] + tol:
+        lo_env = blo[max(0, j - 1):j + 2].min()
+        hi_env = bhi[max(0, j - 1):j + 2].max()
+        if r["final_price"] < lo_env - tol or r["final_price"] > hi_env + tol:
             bad += 1
     if bad:
         rep.err(f"{bad} sampled rows: final_price outside the bar range at window_end_actual "
                 "(fabricated final price).")
     else:
-        rep.note("final_price within the bar range at window end.")
+        note = "final_price within the bar range at window end"
+        if skipped_eor:
+            note += f" ({skipped_eor} end-of-run rows skipped — final tick after last bar)"
+        rep.note(note + ".")
 
 
-def check_pilot_config(meta, pilot, expect_template, rep):
+def check_pilot_config(meta, pilot, expect_template, expect_timezone, rep):
     """Under --pilot, the run metadata must match the locked pilot config, so a
     self-consistent but wrong-config run (e.g. a 15-minute dataset) can't pass."""
     if not pilot or meta is None:
@@ -615,8 +648,17 @@ def check_pilot_config(meta, pilot, expect_template, rep):
     elif str(meta.get("trading_hours_template")) != str(want_tpl):
         rep.err(f"pilot: trading_hours_template={meta.get('trading_hours_template')!r} "
                 f"!= expected {want_tpl!r}."); ok = False
+    # Timezone must be the expected Central ID — a wrong chart timezone shifts the
+    # whole session by an hour even when RTH integers look right.
+    want_tz = expect_timezone or schema.EXPECTED_TIMEZONE_ID
+    if want_tz is None:
+        rep.err("pilot: expected timezone is not locked — set EXPECTED_TIMEZONE_ID "
+                "or pass --expect-timezone \"<id>\"."); ok = False
+    elif str(meta.get("timezone_id")) != str(want_tz):
+        rep.err(f"pilot: timezone_id={meta.get('timezone_id')!r} != expected {want_tz!r} "
+                "(wrong chart timezone shifts the session)."); ok = False
     if ok:
-        rep.note("pilot configuration matches the locked pilot spec (incl. template).")
+        rep.note("pilot configuration matches the locked pilot spec (config, template, timezone).")
 
 
 def check_signal_bar_session(sig, bars, rep):
@@ -643,8 +685,8 @@ def check_rth_cadence(sig, bars, meta, rep):
     missing bars) during RTH; large gaps are treated as session breaks."""
     if bars is None:
         return
-    lo = int(meta["rth_start"]) if meta and "rth_start" in meta else 930
-    hi = int(meta["rth_end"]) if meta and "rth_end" in meta else 1600
+    lo = int(meta["rth_start"]) if meta and "rth_start" in meta else 830
+    hi = int(meta["rth_end"]) if meta and "rth_end" in meta else 1500
     bt = pd.to_datetime(bars["bar_time"], errors="coerce").dropna().sort_values()
     hhmm = bt.dt.hour * 100 + bt.dt.minute
     rth = bt[(hhmm >= lo) & (hhmm <= hi)]
@@ -671,12 +713,21 @@ def check_tick_fidelity(sig, meta, pilot, rep):
                  "(older logger). Re-collect with the current logger.")
         return
     tu = pd.to_numeric(sig["tick_updates"], errors="coerce").fillna(0)
+    st = pd.to_datetime(sig["signal_time"], errors="coerce")
+    wea = pd.to_datetime(sig["window_end_actual"], errors="coerce")
+    positive_dur = (wea - st).dt.total_seconds() > 0
     wc = sig["finalize_reason"] == "window_complete"
-    dead = int(((tu <= 0) & wc).sum())
+    # A zero-length window legitimately has 0 ticks; only a REAL (positive-length)
+    # window with 0 ticks means the tick series never fed it (fabricated labels).
+    dead = int(((tu <= 0) & wc & positive_dur).sum())
     if dead:
-        rep.err(f"{dead} window_complete observation(s) have 0 tick updates — "
-                "the tick series did not feed them; MFE/MAE/timing are invalid. "
+        rep.err(f"{dead} window_complete observation(s) with a real window have 0 tick "
+                "updates — the tick series did not feed them; MFE/MAE/timing are invalid. "
                 "Likely no historical tick data (enable Tick Replay / check feed).")
+    zerolen_dead = int(((tu <= 0) & wc & ~positive_dur).sum())
+    if zerolen_dead:
+        rep.warn(f"{zerolen_dead} zero-length window_complete row(s) with 0 ticks "
+                 "(signal at a session boundary; no label signal).")
     wmin = pd.to_numeric(sig["window_minutes"], errors="coerce").replace(0, np.nan)
     per_min = (tu / wmin).replace([np.inf, -np.inf], np.nan).dropna()
     if len(per_min):
@@ -726,34 +777,45 @@ def check_join_parity(sig, bars, strict, rep, sample=200):
     hi = bars["high"].values
     lo = bars["low"].values
 
+    last_bar = bt[-1] if len(bt) else None
     s = sig.copy()
     s["signal_time"] = pd.to_datetime(s["signal_time"], errors="coerce")
     s["window_end_actual"] = pd.to_datetime(s["window_end_actual"], errors="coerce")
     s = s.sample(min(sample, len(s)), random_state=0)
 
-    exceed = checked = inflated = 0
+    exceed = checked = inflated = skipped_eor = 0
     for _, r in s.iterrows():
         tick = float(r["tick_size"]) if r.get("tick_size", 0) else 0.25
-        lo_i = np.searchsorted(bt, np.datetime64(r["signal_time"]), side="right")
-        hi_i = np.searchsorted(bt, np.datetime64(r["window_end_actual"]), side="right")
-        if hi_i <= lo_i:
+        if pd.isna(r["window_end_actual"]) or r["window_end_actual"] <= r["signal_time"]:
+            continue  # zero-length window: no forward path to reconstruct
+        # end-of-run: wea is a tick time that can fall after the last WRITTEN bar
+        # (run stopped mid-interval); the covering bars don't exist to compare.
+        if last_bar is not None and np.datetime64(r["window_end_actual"]) > last_bar:
+            skipped_eor += 1
             continue
-        seg_hi, seg_lo = hi[lo_i:hi_i], lo[lo_i:hi_i]
-        if len(seg_hi) == 0:
-            continue
+        # Close-stamped bars. The bar that CONTAINS wea closes AFTER wea, so it
+        # also holds ticks the logger correctly excluded. Use two envelopes:
+        #   inner = bars fully within (signal_time, wea] (close <= wea, side=right)
+        #           — the logger saw every tick here, so these bars must NOT reveal
+        #           more excursion than logged (else a real understating bug).
+        #   outer = inner + partial/containing bar + one boundary neighbour
+        #           — logged ticks cannot exceed this, so logged > outer = inflation.
         ref = r["signal_reference_price"]
-        if int(r["is_long"]) == 1:
-            fav = (seg_hi.max() - ref) / tick
-            adv = (ref - seg_lo.min()) / tick
-        else:
-            fav = (ref - seg_lo.min()) / tick
-            adv = (seg_hi.max() - ref) / tick
-        fav, adv = max(fav, 0.0), max(adv, 0.0)
-        # logged should not fall far below the bar-based excursion...
-        if fav > r["mfe_ticks"] + 1.0 or adv > r["mae_ticks"] + 1.0:
+        lo_i = np.searchsorted(bt, np.datetime64(r["signal_time"]), side="right")
+        hi_inner = np.searchsorted(bt, np.datetime64(r["window_end_actual"]), side="right")
+        hi_outer = np.searchsorted(bt, np.datetime64(r["window_end_actual"]), side="left") + 2
+        def excursions(a, bidx_hi):
+            seg_hi, seg_lo = hi[a:bidx_hi], lo[a:bidx_hi]
+            if len(seg_hi) == 0:
+                return None
+            if int(r["is_long"]) == 1:
+                return max((seg_hi.max() - ref) / tick, 0.0), max((ref - seg_lo.min()) / tick, 0.0)
+            return max((ref - seg_lo.min()) / tick, 0.0), max((seg_hi.max() - ref) / tick, 0.0)
+        inner = excursions(lo_i, hi_inner) if hi_inner > lo_i else None
+        outer = excursions(lo_i, hi_outer) if hi_outer > lo_i else None
+        if inner is not None and (inner[0] > r["mfe_ticks"] + 1.0 or inner[1] > r["mae_ticks"] + 1.0):
             exceed += 1
-        # ...nor rise ABOVE it (ticks live inside bar high/low): that's inflation.
-        if r["mfe_ticks"] > fav + 1.0 or r["mae_ticks"] > adv + 1.0:
+        if outer is not None and (r["mfe_ticks"] > outer[0] + 1.0 or r["mae_ticks"] > outer[1] + 1.0):
             inflated += 1
         checked += 1
 
@@ -768,8 +830,10 @@ def check_join_parity(sig, bars, strict, rep, sample=200):
         rep.err(f"join-parity: {exceed}/{checked} sampled signals have bars-based "
                 f"MFE/MAE exceeding logged by >1 tick (possible logging bug).")
     else:
-        rep.note(f"join-parity OK on {checked} sampled signals "
-                 "(logged excursions bounded by bar range).")
+        note = f"join-parity OK on {checked} sampled signals (logged excursions bounded by bar range)"
+        if skipped_eor:
+            note += f"; {skipped_eor} end-of-run rows skipped"
+        rep.note(note + ".")
 
 
 def summary(sig, meta, rep):
@@ -796,6 +860,9 @@ def main():
     ap.add_argument("--expect-template", default=None,
                     help="exact Trading Hours template name the pilot must match "
                          "(required for --pilot unless set in schema).")
+    ap.add_argument("--expect-timezone", default=None,
+                    help="exact timezone_id the pilot must match "
+                         "(default: schema.EXPECTED_TIMEZONE_ID, Central Standard Time).")
     args = ap.parse_args()
 
     strict = not args.allow_incomplete
@@ -818,7 +885,7 @@ def main():
         check_meta(meta, strict, rep)
         check_meta_matches_files(sig, bars, meta, rep)
         check_meta_counts(sig, bars, meta, rep)
-        check_pilot_config(meta, pilot, args.expect_template, rep)
+        check_pilot_config(meta, pilot, args.expect_template, args.expect_timezone, rep)
         check_bar_period(sig, bars, meta, rep)
         check_pairing(sig, bars, strict, rep)
         check_bar_integrity(bars, strict, rep)

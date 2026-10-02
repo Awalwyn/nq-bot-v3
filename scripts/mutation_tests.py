@@ -302,6 +302,14 @@ def main():
     record("pilot lock: trading_hours_template", rc != 0 and "trading_hours_template" in out,
            f"exit={rc} (expected nonzero)")
 
+    # wrong timezone_id must fail --pilot (Central-time enforcement)
+    d, sig, bars, meta = clean_sig("pilot_tz")
+    m = json.load(open(meta)); m["timezone_id"] = "US Eastern Standard Time"
+    json.dump(m, open(meta, "w"))
+    rc, out = run_validator(d, pilot=True, expect_template=TPL)
+    record("pilot lock: timezone_id (Eastern rejected)", rc != 0 and "timezone_id" in out,
+           f"exit={rc} (expected nonzero)")
+
     # window_complete marked right_censored
     d, sig, bars, meta = clean_sig("wc_censored")
     s = pd.read_csv(sig, dtype={"signal_id": str, "run_id": str})

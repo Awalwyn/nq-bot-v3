@@ -166,7 +166,7 @@ def write_meta(out, sig, bars):
         "run_id": RUN_ID, "created_utc": "2024-06-03T13:00:00Z",
         "completed_utc": "2024-06-03T21:00:00Z", "logger": "sample-generator",
         "instrument_full": INSTRUMENT, "instrument_master": MASTER, "expiry": EXPIRY,
-        "tick_size": TICK, "bar_period": "15s", "timezone_id": "US Eastern Standard Time",
+        "tick_size": TICK, "bar_period": "15s", "timezone_id": "Central Standard Time",
         "trading_hours_template": "CME US Index Futures ETH",
         "rth_start": RTH_START, "rth_end": RTH_END,
         "classifier_session_start": 830, "classifier_session_end": 1500,
