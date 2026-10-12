@@ -1,0 +1,406 @@
+#region Using declarations
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.Globalization;
+using System.IO;
+using System.Text;
+using System.Xml.Serialization;
+using NinjaTrader.Cbi;
+using NinjaTrader.Data;
+using NinjaTrader.NinjaScript;
+using NinjaTrader.NinjaScript.Indicators;
+using NinjaTrader.NinjaScript.Indicators.MLExtensionsLib;
+using NinjaTrader.NinjaScript.Indicators.KernelFunctionsLib;
+using NinjaTrader.NinjaScript.AddOns.NQBotV3;
+#endregion
+
+// ============================================================================
+// NQ Bot v3 - PAPER strategy  (paper_v1)   — SIM / PAPER ACCOUNTS ONLY
+// ----------------------------------------------------------------------------
+// Entries: identical to v2 live (RevisedMLLongs / RevisedMLShorts): the
+// MLLorentzianClassification StartLongTrade / StartShortTrade signals with the
+// v2 default settings (7 filters on, thresholds +/-4, session 08:30-15:00).
+//
+// Exits: one of three policies, chosen by the "Exit Policy" parameter. Run ONE
+// instance per policy, each on its own Sim account, on the same chart setup:
+//   Flat       TP 200 / SL 400 ticks (the current live setting)
+//   VolScaled  TP = a * MFE_table[ATR bucket], SL = b * MAE_table[ATR bucket]
+//   Learned    TP = a * MFE head(features), SL = b * MAE head(features)
+// TP/SL are rounded to whole ticks and clamped to [8.0, 800.0].
+// No forced close (IsExitOnSessionCloseStrategy = false), like v2.
+//
+// Features are computed EXACTLY as ninjascript/SignalLogger.cs computes them,
+// so the model sees the same inputs it was trained on. Every entry, skipped
+// signal and exit is written to a CSV for reconciliation with the backtest.
+//
+// Requires in NinjaTrader: MLLorentzianClassification, MLExtensionsLib,
+// KernelFunctionsLib (already installed for v2) and AddOns\NQBotV3Model.cs.
+// GENERATED from ninjascript/templates/NQBotV3Paper.cs.tmpl by
+// scripts/render_paper_strategy.py — edit the template, not this file.
+// ============================================================================
+
+namespace NinjaTrader.NinjaScript.Strategies
+{
+    public enum NQBotV3ExitPolicy { Flat, VolScaled, Learned }
+
+    public class NQBotV3Paper : Strategy
+    {
+        // ---------------- frozen policy constants (paper_v1) ----------------
+        private const double FlatTp = 200.0, FlatSl = 400.0;
+        private const double LearnedA = 1.0, LearnedB = 3.0;
+        private const double VolA = 0.75, VolB = 3.0;
+        private const double ClampLo = 8.0, ClampHi = 800.0;
+        private static readonly double[] VolAtrEdges = new double[] { 0.0, 3.25, 4.25, 5.5, 6.5, 7.75, 9.25, 11.0, 13.75, 18.5, 128.75 };
+        private static readonly double[] VolMfeTicks = new double[] { 90.0, 119.0, 135.5, 151.0, 170.0, 183.0, 206.0, 231.0, 272.0, 337.0 };
+        private static readonly double[] VolMaeTicks = new double[] { 91.0, 123.0, 142.0, 155.0, 166.0, 183.0, 207.0, 224.0, 264.0, 342.0 };
+
+        // ---------------- indicators / state (mirrors SignalLogger) ----------
+        private MLLorentzianClassification ml;
+        private ATR atrRecent, atrHistorical;
+        private ADX adx;
+        private RSI rsi;
+        private CCI cci;
+        private EMA ema200, ema800;
+        private SMA sma200, volAvg;
+        private RegimeFilterState regime;
+        private double kernelPrev1 = double.NaN;
+        private int sameDirectionCandleRun = 0;
+        private int previousCandleDirection = 0;
+
+        private StreamWriter log;
+        private int entrySeq = 0;
+        private readonly Dictionary<string, OpenTrade> open = new Dictionary<string, OpenTrade>();
+
+        private class OpenTrade
+        {
+            public string Name; public bool IsLong; public int Qty;
+            public double Fill = double.NaN; public double Tp; public double Sl;
+            public DateTime SignalTime;
+        }
+
+        // ============================ SETTINGS ==============================
+        [NinjaScriptProperty]
+        [Display(Name = "Exit Policy", Order = 1, GroupName = "1. Paper test")]
+        public NQBotV3ExitPolicy ExitPolicy { get; set; }
+
+        [NinjaScriptProperty][Range(1, 100)]
+        [Display(Name = "Contracts Per Entry", Order = 2, GroupName = "1. Paper test")]
+        public int ContractsPerEntry { get; set; }
+
+        [NinjaScriptProperty][Range(1, 100)]
+        [Display(Name = "Max Entries Per Direction", Order = 3, GroupName = "1. Paper test")]
+        public int MaxEntriesPerDirection { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Ignore Opposite Signal While In Position", Order = 4, GroupName = "1. Paper test")]
+        public bool IgnoreOppositeSignal { get; set; }
+
+        [NinjaScriptProperty]
+        [Display(Name = "Log Folder", Order = 5, GroupName = "1. Paper test")]
+        public string LogFolder { get; set; }
+
+        // ============================ LIFECYCLE ============================
+        protected override void OnStateChange()
+        {
+            if (State == State.SetDefaults)
+            {
+                Description = "NQ Bot v3 paper test: v2 entries, selectable exit policy (paper_v1). Sim accounts only.";
+                Name = "NQBotV3Paper";
+                Calculate = Calculate.OnBarClose;
+                EntriesPerDirection = 1;
+                EntryHandling = EntryHandling.AllEntries;
+                IsExitOnSessionCloseStrategy = false;
+                StopTargetHandling = StopTargetHandling.PerEntryExecution;
+                StartBehavior = StartBehavior.WaitUntilFlat;
+                TimeInForce = TimeInForce.Gtc;
+                RealtimeErrorHandling = RealtimeErrorHandling.StopCancelClose;
+                BarsRequiredToTrade = 820;
+                MaximumBarsLookBack = MaximumBarsLookBack.Infinite;
+                Slippage = 0;
+
+                ExitPolicy = NQBotV3ExitPolicy.Flat;
+                ContractsPerEntry = 1;
+                MaxEntriesPerDirection = 1;      // v2 live: EntriesPerDirection = 1
+                IgnoreOppositeSignal = true;
+                LogFolder = @"C:\ProgramData\nqbotv3\data\paper";
+            }
+            else if (State == State.Configure)
+            {
+                EntriesPerDirection = MaxEntriesPerDirection;
+            }
+            else if (State == State.DataLoaded)
+            {
+                // v2 live settings (RevisedMLLongs / RevisedMLShorts defaults)
+                ml = MLLorentzianClassification(8, 2000, 5, 1, false, false, false,
+                    "RSI", 14, 1, "WT", 10, 11, "CCI", 20, 1, "ADX", 20, 2, "RSI", 9, 1,
+                    true, true, -0.1, true, 20, true, 200, true, 800, true, 200,
+                    true, false, false, 8, 8.0, 25, 2, 4.0, -4.0, 830, 1500, false, false);
+
+                // feature indicators (identical to SignalLogger)
+                atrRecent     = ATR(1);
+                atrHistorical = ATR(10);
+                adx           = ADX(14);
+                rsi           = RSI(14, 1);
+                cci           = CCI(20);
+                ema200        = EMA(200);
+                ema800        = EMA(800);
+                sma200        = SMA(200);
+                volAvg        = SMA(VOL(), 20);
+                regime        = new RegimeFilterState();
+                OpenLog();
+            }
+            else if (State == State.Terminated)
+            {
+                try { if (log != null) { log.Flush(); log.Dispose(); log = null; } } catch { }
+            }
+        }
+
+        // ============================ MAIN LOOP ============================
+        protected override void OnBarUpdate()
+        {
+            if (BarsInProgress != 0) return;
+
+            // stateful features advance on EVERY bar (same order as SignalLogger)
+            double hlc4 = (Open[0] + High[0] + Low[0] + Close[0]) / 4.0;
+            regime.Update(hlc4, High[0], Low[0]);
+            Func<int, double> src = i => Close[Math.Min(i, CurrentBar)];
+            double kernel  = KernelFunctions.RationalQuadratic(src, CurrentBar, 8, 8.0, 25);
+            double kernelG = KernelFunctions.Gaussian(src, CurrentBar, Math.Max(1, 8 - 2), 25);
+            UpdateCandleRun();
+
+            bool warm = CurrentBar >= 2000 - 1;
+            if (warm && CurrentBar >= BarsRequiredToTrade)
+            {
+                bool goLong = ml.StartLongTrade[0];
+                bool goShort = ml.StartShortTrade[0];
+                if (goLong || goShort)
+                    HandleSignal(goLong, kernel, kernelG);
+            }
+
+            kernelPrev1 = kernel;   // advance AFTER features are read (as the logger does)
+        }
+
+        private void HandleSignal(bool isLong, double kernel, double kernelG)
+        {
+            int score = (int)Math.Round(ml.Prediction[0]);
+            float[] x = BuildFeatures(isLong, score, kernel, kernelG);
+
+            double tp, sl, predMfe = double.NaN, predMae = double.NaN; int bucket = -1;
+            switch (ExitPolicy)
+            {
+                case NQBotV3ExitPolicy.Learned:
+                    predMfe = NQBotV3Model.MfeTicks(x); predMae = NQBotV3Model.MaeTicks(x);
+                    tp = LearnedA * predMfe; sl = LearnedB * predMae; break;
+                case NQBotV3ExitPolicy.VolScaled:
+                    bucket = VolBucket(atrRecent[0]);
+                    tp = VolA * VolMfeTicks[bucket]; sl = VolB * VolMaeTicks[bucket]; break;
+                default:
+                    tp = FlatTp; sl = FlatSl; break;
+            }
+            tp = Clamp(Math.Round(tp)); sl = Clamp(Math.Round(sl));
+
+            string skip = "";
+            if (IgnoreOppositeSignal &&
+                ((isLong && Position.MarketPosition == MarketPosition.Short) ||
+                 (!isLong && Position.MarketPosition == MarketPosition.Long)))
+                skip = "opposite_position_open";
+            else if (CountOpen(isLong) >= MaxEntriesPerDirection)
+                skip = "max_entries_per_direction";
+            else if (double.IsNaN(tp) || double.IsNaN(sl))
+                skip = "invalid_exit";
+
+            entrySeq++;
+            string name = (isLong ? "L" : "S") + "_" + Time[0].ToString("yyyyMMddHHmmss", CultureInfo.InvariantCulture) + "_" + entrySeq;
+            WriteRow(skip == "" ? "signal_taken" : "signal_skipped", name, isLong, score, tp, sl,
+                     predMfe, predMae, bucket, x, skip, double.NaN, double.NaN, Time[0]);
+            if (skip != "") return;
+
+            open[name] = new OpenTrade { Name = name, IsLong = isLong, Qty = ContractsPerEntry, Tp = tp, Sl = sl, SignalTime = Time[0] };
+            SetStopLoss(name, CalculationMode.Ticks, sl, false);
+            SetProfitTarget(name, CalculationMode.Ticks, tp);
+            if (isLong) EnterLong(ContractsPerEntry, name); else EnterShort(ContractsPerEntry, name);
+        }
+
+        protected override void OnExecutionUpdate(Execution execution, string executionId, double price,
+            int quantity, MarketPosition marketPosition, string orderId, DateTime time)
+        {
+            if (execution == null || execution.Order == null) return;
+            Order o = execution.Order;
+            OpenTrade t;
+            if (open.TryGetValue(o.Name, out t))                 // entry fill
+            {
+                t.Fill = price;
+                WriteRow("entry_fill", t.Name, t.IsLong, 0, t.Tp, t.Sl, double.NaN, double.NaN, -1, null,
+                         "", price, double.NaN, time);
+                return;
+            }
+            if (!string.IsNullOrEmpty(o.FromEntrySignal) && open.TryGetValue(o.FromEntrySignal, out t))
+            {
+                double pnl = double.IsNaN(t.Fill) ? double.NaN
+                    : (t.IsLong ? price - t.Fill : t.Fill - price) / TickSize;
+                WriteRow("exit_fill", t.Name, t.IsLong, 0, t.Tp, t.Sl, double.NaN, double.NaN, -1, null,
+                         o.Name, price, pnl, time);
+                if (o.OrderState == OrderState.Filled) open.Remove(t.Name);
+            }
+        }
+
+        protected override void OnOrderUpdate(Order order, double limitPrice, double stopPrice, int quantity,
+            int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string comment)
+        {
+            if (order == null) return;
+            OpenTrade t;
+            if (open.TryGetValue(order.Name, out t) && double.IsNaN(t.Fill) &&
+                (orderState == OrderState.Cancelled || orderState == OrderState.Rejected))
+            {
+                WriteRow("entry_" + orderState.ToString().ToLower(), t.Name, t.IsLong, 0, t.Tp, t.Sl,
+                         double.NaN, double.NaN, -1, null, comment ?? "", double.NaN, double.NaN, time);
+                open.Remove(t.Name);
+            }
+        }
+
+        // ======================= FEATURES (= SignalLogger) =====================
+        private float[] BuildFeatures(bool isLong, int score, double kernel, double kernelG)
+        {
+            double refPrice = Close[0];
+            DateTime t = Time[0];
+            double atrTicks = Math.Max(1.0, atrRecent[0] / TickSize);
+            bool volPass = MLExtensions.FilterVolatility(atrRecent[0], atrHistorical[0], true);
+            bool regimePass = regime.Evaluate(-0.1, true);
+            bool adxPass = MLExtensions.FilterAdx(adx[0], 20, true);
+            bool e200 = isLong ? refPrice > ema200[0] : refPrice < ema200[0];
+            bool e800 = isLong ? refPrice > ema800[0] : refPrice < ema800[0];
+            bool s200 = isLong ? refPrice > sma200[0] : refPrice < sma200[0];
+            bool kPass = KernelVerdict(isLong, kernel);
+            bool all = volPass && regimePass && adxPass && e200 && e800 && s200 && kPass;
+            double range = Math.Max(TickSize, High[0] - Low[0]);
+
+            var f = new Dictionary<string, double>
+            {
+                {"volatility_pass", B(volPass)},
+                {"atr_recent", Safe(atrRecent[0])},
+                {"atr_historical", Safe(atrHistorical[0])},
+                {"atr_ratio", atrHistorical[0] > 0 ? Safe(atrRecent[0] / atrHistorical[0]) : double.NaN},
+                {"regime_pass", B(regimePass)},
+                {"regime_value", Safe(regime.NormalizedSlopeDecline)},
+                {"adx_pass", B(adxPass)},
+                {"adx_value", Safe(adx[0])},
+                {"ema200_pass", B(e200)},
+                {"dist_ema200_ticks", (refPrice - ema200[0]) / TickSize},
+                {"dist_ema200_atr", (refPrice - ema200[0]) / TickSize / atrTicks},
+                {"ema800_pass", B(e800)},
+                {"dist_ema800_ticks", (refPrice - ema800[0]) / TickSize},
+                {"dist_ema800_atr", (refPrice - ema800[0]) / TickSize / atrTicks},
+                {"sma200_pass", B(s200)},
+                {"dist_sma200_ticks", (refPrice - sma200[0]) / TickSize},
+                {"kernel_pass", B(kPass)},
+                {"kernel_slope_ticks", double.IsNaN(kernelPrev1) ? double.NaN : (kernel - kernelPrev1) / TickSize},
+                {"price_minus_kernel_ticks", (refPrice - kernel) / TickSize},
+                {"entry_filters_passed", B(all)},
+                {"rsi", Safe(rsi[0])},
+                {"cci", Safe(cci[0])},
+                {"minute_of_day", t.Hour * 60 + t.Minute},
+                {"candle_run", sameDirectionCandleRun},
+                {"body_to_range", Math.Abs(Close[0] - Open[0]) / range},
+                {"volume_ratio", volAvg[0] > 0 ? Safe(Volume[0] / volAvg[0]) : double.NaN},
+                {"bar_range_ticks", (High[0] - Low[0]) / TickSize},
+                {"score", score},
+                {"is_long", B(isLong)},
+                {"is_rth", B(InSession(t, 830, 1500))},
+            };
+            float[] x = new float[NQBotV3Model.NumFeatures];
+            for (int i = 0; i < x.Length; i++)
+            {
+                double v;
+                x[i] = f.TryGetValue(NQBotV3Model.FeatureOrder[i], out v) ? (float)v : float.NaN;
+            }
+            return x;
+        }
+
+        private bool KernelVerdict(bool isLong, double kernel)
+        {
+            // SignalLogger with KernelSmoothing = false
+            bool bullish = !double.IsNaN(kernelPrev1) && kernelPrev1 < kernel;
+            bool bearish = !double.IsNaN(kernelPrev1) && kernelPrev1 > kernel;
+            return isLong ? bullish : bearish;
+        }
+
+        private void UpdateCandleRun()
+        {
+            int d = Close[0] > Open[0] ? 1 : Close[0] < Open[0] ? -1 : 0;
+            if (d != 0 && d == previousCandleDirection) sameDirectionCandleRun++;
+            else if (d != 0) sameDirectionCandleRun = 1;
+            else sameDirectionCandleRun = 0;
+            previousCandleDirection = d;
+        }
+
+        // ============================ HELPERS ==============================
+        private static int VolBucket(double atr)
+        {
+            // bucket = clamp(searchsorted(edges, atr, right) - 1, 0, n-1)
+            int n = VolAtrEdges.Length - 1, k = 0;
+            while (k < VolAtrEdges.Length && VolAtrEdges[k] <= atr) k++;
+            return Math.Max(0, Math.Min(n - 1, k - 1));
+        }
+        private static double Clamp(double v) { return double.IsNaN(v) ? v : Math.Max(ClampLo, Math.Min(ClampHi, v)); }
+        private static double B(bool b) { return b ? 1.0 : 0.0; }
+        private static double Safe(double v) { return (double.IsNaN(v) || double.IsInfinity(v)) ? double.NaN : v; }
+        private static bool InSession(DateTime t, int s, int e)
+        {
+            int hhmm = t.Hour * 100 + t.Minute;
+            return s <= e ? hhmm >= s && hhmm <= e : hhmm >= s || hhmm <= e;
+        }
+        private int CountOpen(bool isLong)
+        {
+            int n = 0;
+            foreach (var kv in open) if (kv.Value.IsLong == isLong) n++;
+            return n;
+        }
+
+        // ============================== LOG ================================
+        private void OpenLog()
+        {
+            try
+            {
+                Directory.CreateDirectory(LogFolder);
+                string acct = Account != null ? Account.Name : "noacct";
+                string path = Path.Combine(LogFolder, string.Format("paper_{0}_{1}_{2}.csv",
+                    ExitPolicy, acct, DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)));
+                bool fresh = !File.Exists(path);
+                log = new StreamWriter(path, true, Encoding.UTF8) { AutoFlush = true };
+                if (fresh)
+                    log.WriteLine("event,name,time,bar_time,state,policy,version,account,is_long,score,tp_ticks,sl_ticks,"
+                        + "pred_mfe_ticks,pred_mae_ticks,vol_bucket,price,pnl_ticks,note,"
+                        + string.Join(",", NQBotV3Model.FeatureOrder));
+            }
+            catch (Exception ex) { log = null; Print("NQBotV3Paper: could not open log: " + ex.Message); }
+        }
+
+        private void WriteRow(string ev, string name, bool isLong, int score, double tp, double sl,
+            double pm, double pa, int bucket, float[] x, string note, double price, double pnl, DateTime time)
+        {
+            if (log == null) return;
+            var ci = CultureInfo.InvariantCulture;
+            var sb = new StringBuilder();
+            sb.Append(ev).Append(',').Append(name).Append(',')
+              .Append(time.ToString("yyyy-MM-ddTHH:mm:ss", ci)).Append(',')
+              .Append(Time[0].ToString("yyyy-MM-ddTHH:mm:ss", ci)).Append(',')
+              .Append(State == State.Historical ? "historical" : "realtime").Append(',')
+              .Append(ExitPolicy).Append(',').Append(NQBotV3Model.Version).Append(',')
+              .Append(Account != null ? Account.Name : "").Append(',')
+              .Append(isLong ? 1 : 0).Append(',').Append(score).Append(',')
+              .Append(tp.ToString(ci)).Append(',').Append(sl.ToString(ci)).Append(',')
+              .Append(N(pm)).Append(',').Append(N(pa)).Append(',').Append(bucket).Append(',')
+              .Append(N(price)).Append(',').Append(N(pnl)).Append(',').Append(note);
+            for (int i = 0; i < NQBotV3Model.NumFeatures; i++)
+                sb.Append(',').Append(x == null ? "" : N(x[i]));
+            try { log.WriteLine(sb.ToString()); }
+            catch (Exception ex) { Print("NQBotV3Paper: log write failed: " + ex.Message); }
+        }
+        private static string N(double v)
+        {
+            return double.IsNaN(v) ? "" : v.ToString("R", CultureInfo.InvariantCulture);
+        }
+    }
+}

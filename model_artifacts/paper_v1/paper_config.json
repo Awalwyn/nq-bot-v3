@@ -1,0 +1,145 @@
+{
+ "version": "paper_v1",
+ "created_utc": "2026-10-12T10:39:49Z",
+ "trained_on": {
+  "dev_sessions": [
+   "2025-10-13",
+   "2026-06-29"
+  ],
+  "entries": 142632,
+  "holdout_used": false
+ },
+ "feature_order": [
+  "volatility_pass",
+  "atr_recent",
+  "atr_historical",
+  "atr_ratio",
+  "regime_pass",
+  "regime_value",
+  "adx_pass",
+  "adx_value",
+  "ema200_pass",
+  "dist_ema200_ticks",
+  "dist_ema200_atr",
+  "ema800_pass",
+  "dist_ema800_ticks",
+  "dist_ema800_atr",
+  "sma200_pass",
+  "dist_sma200_ticks",
+  "kernel_pass",
+  "kernel_slope_ticks",
+  "price_minus_kernel_ticks",
+  "entry_filters_passed",
+  "rsi",
+  "cci",
+  "minute_of_day",
+  "candle_run",
+  "body_to_range",
+  "volume_ratio",
+  "bar_range_ticks",
+  "score",
+  "is_long",
+  "is_rth"
+ ],
+ "onnx": {
+  "input_name": "input",
+  "input_shape": [
+   "batch",
+   30
+  ],
+  "dtype": "float32",
+  "output": "log1p(ticks); apply expm1"
+ },
+ "clamp_ticks": [
+  8.0,
+  800.0
+ ],
+ "round_ticks": "round to nearest whole tick, then clamp",
+ "policies": {
+  "flat": {
+   "tp_ticks": 200,
+   "sl_ticks": 400
+  },
+  "learned": {
+   "a": 1.0,
+   "b": 3.0,
+   "tp": "a * expm1(mfe_head)",
+   "sl": "b * expm1(mae_head)"
+  },
+  "vol_scaled": {
+   "a": 0.75,
+   "b": 3.0,
+   "tp": "a * mfe_median_ticks[bucket]",
+   "sl": "b * mae_median_ticks[bucket]",
+   "table": {
+    "atr_edges": [
+     0.0,
+     3.25,
+     4.25,
+     5.5,
+     6.5,
+     7.75,
+     9.25,
+     11.0,
+     13.75,
+     18.5,
+     128.75
+    ],
+    "mfe_median_ticks": [
+     90.0,
+     119.0,
+     135.5,
+     151.0,
+     170.0,
+     183.0,
+     206.0,
+     231.0,
+     272.0,
+     337.0
+    ],
+    "mae_median_ticks": [
+     91.0,
+     123.0,
+     142.0,
+     155.0,
+     166.0,
+     183.0,
+     207.0,
+     224.0,
+     264.0,
+     342.0
+    ],
+    "rule": "bucket = clamp(searchsorted(atr_edges, atr_recent, right) - 1, 0, n-1)"
+   }
+  }
+ },
+ "selection_evidence": {
+  "learned": {
+   "a": 1.0,
+   "b": 3.0,
+   "pooled_oof_net_ticks": 3.44
+  },
+  "vol_scaled": {
+   "a": 0.75,
+   "b": 3.0,
+   "pooled_oof_net_ticks": 5.99
+  }
+ },
+ "grid_axes": {
+  "a": [
+   0.25,
+   0.5,
+   0.75,
+   1.0,
+   1.5
+  ],
+  "b": [
+   0.5,
+   0.75,
+   1.0,
+   1.5,
+   2.0,
+   3.0
+  ]
+ }
+}
