@@ -77,6 +77,29 @@ def load_signals(path: str | None = None, dir_path: str | None = None) -> pd.Dat
     return df
 
 
+class HoldoutLockedError(RuntimeError):
+    pass
+
+
+def load_clean(path: str, allow_holdout: bool = False) -> pd.DataFrame:
+    """Load a parquet written by data_pipeline/clean.py.
+
+    The locked holdout is refused unless allow_holdout=True. That flag is meant
+    to be set exactly once: the final learned-vs-flat test (ADR 0013).
+    """
+    df = pd.read_parquet(path)
+    splits = set(df["split"].unique()) if "split" in df else set()
+    if ("holdout" in splits or "HOLDOUT" in os.path.basename(path)) and not allow_holdout:
+        raise HoldoutLockedError(
+            f"{path} contains the LOCKED holdout. It is used once, for the final "
+            "test, via allow_holdout=True / --final. Do not use it for analysis, "
+            "feature selection, tuning or exit-band fitting.")
+    if "dev" in splits and "holdout" in splits:
+        raise HoldoutLockedError("file mixes dev and holdout rows — refusing")
+    df["signal_time"] = pd.to_datetime(df["signal_time"])
+    return df.sort_values("signal_time").reset_index(drop=True)
+
+
 # ---------------------------------------------------------------------------
 # splitting  (time-based, with embargo)
 # ---------------------------------------------------------------------------

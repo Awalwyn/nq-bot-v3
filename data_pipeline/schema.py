@@ -155,11 +155,38 @@ BARS_COLUMNS = [
 
 # Columns that are safe to consider as model inputs (X). Note filter_config,
 # day_of_week are categorical/string and need encoding; everything else numeric.
-MODEL_FEATURE_CANDIDATES = [c for c in FEATURE if c not in ("filter_config", "day_of_week")]
-CATEGORICAL_FEATURES = ["filter_config", "day_of_week"]
+# Phase 2 (ADR 0013): features excluded from the model, with the reason. Each
+# reason is a contamination or live-parity risk, not a performance judgement.
+EXCLUDED_FEATURES = {
+    "ema200_value": "absolute price level: back-adjusted (differs from live) and fingerprints the date",
+    "ema800_value": "absolute price level: back-adjusted (differs from live) and fingerprints the date",
+    "sma200_value": "absolute price level: back-adjusted (differs from live) and fingerprints the date",
+    "kernel_value": "absolute price level: back-adjusted (differs from live) and fingerprints the date",
+    "kernel_gaussian": "absolute price level: back-adjusted (differs from live) and fingerprints the date",
+    "dist_vwap_ticks": "wrong session boundary in run_20261011 (removed from the clean file)",
+    "volume": "raw volume drifts by regime/session; volume_ratio carries the scale-free version",
+    "filter_config": "string; redundant with the individual *_pass flags",
+    "day_of_week": "string; add later via a fixed weekday->int map if useful",
+}
+
+# Point-in-time columns known at entry that are not in FEATURE but belong in X.
+# is_rth is derived by data_pipeline/clean.py from session_tag.
+ENTRY_CONTEXT_FEATURES = ["score", "is_long", "is_rth"]
+
+MODEL_FEATURE_CANDIDATES = (
+    [c for c in FEATURE if c not in EXCLUDED_FEATURES] + ENTRY_CONTEXT_FEATURES
+)
+CATEGORICAL_FEATURES: list[str] = []
+
+# Columns added by data_pipeline/clean.py. The xs_* columns are computed FROM
+# the labels (bar-vs-tick disagreement), so they are forbidden as features.
+CLEAN_AUDIT_COLUMNS = [
+    "session_date_logger", "nbars_logged_span", "xs_dmfe", "xs_dmae", "xs_dmax",
+    "label_source", "cluster_session", "split",
+]
 
 # Columns that must NEVER appear in X (would leak the future).
-FORBIDDEN_AS_FEATURES = set(LABEL)
+FORBIDDEN_AS_FEATURES = set(LABEL) | set(CLEAN_AUDIT_COLUMNS)
 
 VALID_SESSION_TAGS = {"RTH", "OVERNIGHT"}
 SCORE_MIN_ABS_DEFAULT = 4
