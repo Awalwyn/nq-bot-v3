@@ -1,0 +1,1797 @@
+{
+ "folds": [
+  {
+   "month": "2026-02",
+   "choice": {
+    "learned_ab": [
+     0.25,
+     3.0
+    ],
+    "vol_ab": [
+     0.5,
+     3.0
+    ],
+    "flat_matched": [
+     34,
+     395
+    ]
+   },
+   "cluster_first": {
+    "learned": {
+     "label": "learned",
+     "trades": 4476,
+     "sessions": 20,
+     "mean_ticks": 4.15,
+     "ci95": [
+      -4.41,
+      12.15
+     ],
+     "net_mean_ticks": 3.08,
+     "net_ci95": [
+      -5.5,
+      11.09
+     ],
+     "win_rate": 0.928,
+     "total_net_ticks": 13790.4,
+     "max_drawdown_ticks": -14322.8,
+     "worst_day_ticks": -9101.5,
+     "exit_mix": {
+      "tp": 0.928,
+      "sl": 0.072
+     },
+     "hold_min_median": 2.2,
+     "past_60m_pct": 6.2,
+     "thru_halt_pct": 1.6,
+     "thru_weekend_pct": 0.51,
+     "gap_fill_pct": 0.74,
+     "std_per_trade": 161.2,
+     "daily_std": 4374.6,
+     "mean_over_daily_std": 0.158,
+     "days_below_400": 9,
+     "days_below_800": 9,
+     "days": 20
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 4476,
+     "sessions": 20,
+     "mean_ticks": 6.48,
+     "ci95": [
+      -4.41,
+      18.5
+     ],
+     "net_mean_ticks": 5.34,
+     "net_ci95": [
+      -5.57,
+      17.38
+     ],
+     "win_rate": 0.861,
+     "total_net_ticks": 23896.5,
+     "max_drawdown_ticks": -17978.0,
+     "worst_day_ticks": -5699.0,
+     "exit_mix": {
+      "tp": 0.861,
+      "sl": 0.139
+     },
+     "hold_min_median": 9.0,
+     "past_60m_pct": 16.1,
+     "thru_halt_pct": 5.5,
+     "thru_weekend_pct": 0.89,
+     "gap_fill_pct": 0.94,
+     "std_per_trade": 229.3,
+     "daily_std": 6010.3,
+     "mean_over_daily_std": 0.199,
+     "days_below_400": 8,
+     "days_below_800": 8,
+     "days": 20
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 4476,
+     "sessions": 20,
+     "mean_ticks": 0.58,
+     "ci95": [
+      -6.11,
+      6.26
+     ],
+     "net_mean_ticks": -0.5,
+     "net_ci95": [
+      -7.21,
+      5.19
+     ],
+     "win_rate": 0.92,
+     "total_net_ticks": -2225.0,
+     "max_drawdown_ticks": -16997.0,
+     "worst_day_ticks": -8488.0,
+     "exit_mix": {
+      "tp": 0.92,
+      "sl": 0.08
+     },
+     "hold_min_median": 1.8,
+     "past_60m_pct": 5.9,
+     "thru_halt_pct": 2.1,
+     "thru_weekend_pct": 0.38,
+     "gap_fill_pct": 0.71,
+     "std_per_trade": 125.6,
+     "daily_std": 3282.4,
+     "mean_over_daily_std": -0.034,
+     "days_below_400": 9,
+     "days_below_800": 8,
+     "days": 20
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 4476,
+     "sessions": 20,
+     "mean_ticks": -1.72,
+     "ci95": [
+      -16.6,
+      12.56
+     ],
+     "net_mean_ticks": -3.06,
+     "net_ci95": [
+      -17.96,
+      11.24
+     ],
+     "win_rate": 0.663,
+     "total_net_ticks": -13698.0,
+     "max_drawdown_ticks": -52769.0,
+     "worst_day_ticks": -15377.0,
+     "exit_mix": {
+      "tp": 0.663,
+      "sl": 0.337
+     },
+     "hold_min_median": 36.8,
+     "past_60m_pct": 38.3,
+     "thru_halt_pct": 15.4,
+     "thru_weekend_pct": 1.81,
+     "gap_fill_pct": 1.9,
+     "std_per_trade": 302.3,
+     "daily_std": 7517.8,
+     "mean_over_daily_std": -0.091,
+     "days_below_400": 10,
+     "days_below_800": 10,
+     "days": 20
+    }
+   },
+   "live_approx": {
+    "learned": {
+     "label": "learned",
+     "trades": 122,
+     "sessions": 19,
+     "mean_ticks": 21.99,
+     "ci95": [
+      -11.28,
+      57.15
+     ],
+     "net_mean_ticks": 20.93,
+     "net_ci95": [
+      -12.38,
+      56.13
+     ],
+     "win_rate": 0.943,
+     "total_net_ticks": 2553.8,
+     "max_drawdown_ticks": -1519.1,
+     "worst_day_ticks": -742.6,
+     "exit_mix": {
+      "tp": 0.943,
+      "sl": 0.057
+     },
+     "hold_min_median": 1.9,
+     "past_60m_pct": 4.1,
+     "thru_halt_pct": 2.5,
+     "thru_weekend_pct": 1.64,
+     "gap_fill_pct": 2.46,
+     "std_per_trade": 174.3,
+     "daily_std": 533.8,
+     "mean_over_daily_std": 0.252,
+     "days_below_400": 2,
+     "days_below_800": 0,
+     "days": 19
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 122,
+     "sessions": 19,
+     "mean_ticks": 64.99,
+     "ci95": [
+      14.54,
+      118.42
+     ],
+     "net_mean_ticks": 63.91,
+     "net_ci95": [
+      13.42,
+      117.4
+     ],
+     "win_rate": 0.926,
+     "total_net_ticks": 7797.5,
+     "max_drawdown_ticks": -1415.0,
+     "worst_day_ticks": -698.0,
+     "exit_mix": {
+      "tp": 0.926,
+      "sl": 0.074
+     },
+     "hold_min_median": 7.9,
+     "past_60m_pct": 18.0,
+     "thru_halt_pct": 13.1,
+     "thru_weekend_pct": 3.28,
+     "gap_fill_pct": 3.28,
+     "std_per_trade": 239.5,
+     "daily_std": 843.0,
+     "mean_over_daily_std": 0.487,
+     "days_below_400": 4,
+     "days_below_800": 0,
+     "days": 19
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 122,
+     "sessions": 19,
+     "mean_ticks": 15.24,
+     "ci95": [
+      -4.61,
+      31.88
+     ],
+     "net_mean_ticks": 14.18,
+     "net_ci95": [
+      -5.7,
+      30.86
+     ],
+     "win_rate": 0.943,
+     "total_net_ticks": 1730.0,
+     "max_drawdown_ticks": -629.0,
+     "worst_day_ticks": -530.0,
+     "exit_mix": {
+      "tp": 0.943,
+      "sl": 0.057
+     },
+     "hold_min_median": 1.0,
+     "past_60m_pct": 4.1,
+     "thru_halt_pct": 4.1,
+     "thru_weekend_pct": 0.82,
+     "gap_fill_pct": 1.64,
+     "std_per_trade": 120.6,
+     "daily_std": 278.0,
+     "mean_over_daily_std": 0.327,
+     "days_below_400": 1,
+     "days_below_800": 0,
+     "days": 19
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 122,
+     "sessions": 19,
+     "mean_ticks": 13.82,
+     "ci95": [
+      -29.77,
+      68.47
+     ],
+     "net_mean_ticks": 12.5,
+     "net_ci95": [
+      -31.15,
+      67.24
+     ],
+     "win_rate": 0.68,
+     "total_net_ticks": 1525.0,
+     "max_drawdown_ticks": -3108.0,
+     "worst_day_ticks": -1616.0,
+     "exit_mix": {
+      "tp": 0.68,
+      "sl": 0.32
+     },
+     "hold_min_median": 18.2,
+     "past_60m_pct": 29.5,
+     "thru_halt_pct": 22.1,
+     "thru_weekend_pct": 4.1,
+     "gap_fill_pct": 4.1,
+     "std_per_trade": 319.0,
+     "daily_std": 700.7,
+     "mean_over_daily_std": 0.115,
+     "days_below_400": 5,
+     "days_below_800": 2,
+     "days": 19
+    }
+   }
+  },
+  {
+   "month": "2026-03",
+   "choice": {
+    "learned_ab": [
+     1.5,
+     0.5
+    ],
+    "vol_ab": [
+     0.25,
+     3.0
+    ],
+    "flat_matched": [
+     257,
+     86
+    ]
+   },
+   "cluster_first": {
+    "learned": {
+     "label": "learned",
+     "trades": 4974,
+     "sessions": 22,
+     "mean_ticks": -8.82,
+     "ci95": [
+      -15.08,
+      -3.39
+     ],
+     "net_mean_ticks": -10.59,
+     "net_ci95": [
+      -16.87,
+      -5.15
+     ],
+     "win_rate": 0.23,
+     "total_net_ticks": -52696.1,
+     "max_drawdown_ticks": -55832.2,
+     "worst_day_ticks": -10114.1,
+     "exit_mix": {
+      "sl": 0.77,
+      "tp": 0.23
+     },
+     "hold_min_median": 6.2,
+     "past_60m_pct": 2.2,
+     "thru_halt_pct": 0.6,
+     "thru_weekend_pct": 0.08,
+     "gap_fill_pct": 0.36,
+     "std_per_trade": 164.5,
+     "daily_std": 3145.4,
+     "mean_over_daily_std": -0.762,
+     "days_below_400": 16,
+     "days_below_800": 16,
+     "days": 22
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 4974,
+     "sessions": 22,
+     "mean_ticks": 5.07,
+     "ci95": [
+      -1.7,
+      11.44
+     ],
+     "net_mean_ticks": 4.0,
+     "net_ci95": [
+      -2.79,
+      10.38
+     ],
+     "win_rate": 0.929,
+     "total_net_ticks": 19904.5,
+     "max_drawdown_ticks": -15645.8,
+     "worst_day_ticks": -5710.8,
+     "exit_mix": {
+      "tp": 0.929,
+      "sl": 0.071
+     },
+     "hold_min_median": 2.2,
+     "past_60m_pct": 6.5,
+     "thru_halt_pct": 1.9,
+     "thru_weekend_pct": 0.22,
+     "gap_fill_pct": 0.46,
+     "std_per_trade": 161.9,
+     "daily_std": 3659.9,
+     "mean_over_daily_std": 0.247,
+     "days_below_400": 7,
+     "days_below_800": 7,
+     "days": 22
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 4974,
+     "sessions": 22,
+     "mean_ticks": -4.66,
+     "ci95": [
+      -10.76,
+      1.08
+     ],
+     "net_mean_ticks": -6.43,
+     "net_ci95": [
+      -12.54,
+      -0.66
+     ],
+     "win_rate": 0.238,
+     "total_net_ticks": -31959.0,
+     "max_drawdown_ticks": -38135.0,
+     "worst_day_ticks": -8584.0,
+     "exit_mix": {
+      "sl": 0.762,
+      "tp": 0.238
+     },
+     "hold_min_median": 6.5,
+     "past_60m_pct": 3.7,
+     "thru_halt_pct": 1.5,
+     "thru_weekend_pct": 0.06,
+     "gap_fill_pct": 0.2,
+     "std_per_trade": 147.2,
+     "daily_std": 3292.6,
+     "mean_over_daily_std": -0.441,
+     "days_below_400": 14,
+     "days_below_800": 13,
+     "days": 22
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 4974,
+     "sessions": 22,
+     "mean_ticks": -0.83,
+     "ci95": [
+      -16.05,
+      14.54
+     ],
+     "net_mean_ticks": -2.17,
+     "net_ci95": [
+      -17.41,
+      13.23
+     ],
+     "win_rate": 0.666,
+     "total_net_ticks": -10788.0,
+     "max_drawdown_ticks": -45474.0,
+     "worst_day_ticks": -13172.0,
+     "exit_mix": {
+      "tp": 0.666,
+      "sl": 0.334
+     },
+     "hold_min_median": 31.8,
+     "past_60m_pct": 28.5,
+     "thru_halt_pct": 9.9,
+     "thru_weekend_pct": 1.15,
+     "gap_fill_pct": 1.35,
+     "std_per_trade": 319.0,
+     "daily_std": 8673.8,
+     "mean_over_daily_std": -0.057,
+     "days_below_400": 12,
+     "days_below_800": 12,
+     "days": 22
+    }
+   },
+   "live_approx": {
+    "learned": {
+     "label": "learned",
+     "trades": 151,
+     "sessions": 22,
+     "mean_ticks": -3.52,
+     "ci95": [
+      -31.32,
+      31.31
+     ],
+     "net_mean_ticks": -5.29,
+     "net_ci95": [
+      -33.15,
+      29.66
+     ],
+     "win_rate": 0.232,
+     "total_net_ticks": -799.1,
+     "max_drawdown_ticks": -2720.5,
+     "worst_day_ticks": -908.0,
+     "exit_mix": {
+      "sl": 0.768,
+      "tp": 0.232
+     },
+     "hold_min_median": 6.0,
+     "past_60m_pct": 1.3,
+     "thru_halt_pct": 0.7,
+     "thru_weekend_pct": 0.0,
+     "gap_fill_pct": 1.32,
+     "std_per_trade": 161.4,
+     "daily_std": 506.4,
+     "mean_over_daily_std": -0.072,
+     "days_below_400": 5,
+     "days_below_800": 2,
+     "days": 22
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 151,
+     "sessions": 22,
+     "mean_ticks": 18.17,
+     "ci95": [
+      -4.52,
+      38.79
+     ],
+     "net_mean_ticks": 17.12,
+     "net_ci95": [
+      -5.61,
+      37.75
+     ],
+     "win_rate": 0.947,
+     "total_net_ticks": 2584.5,
+     "max_drawdown_ticks": -1666.0,
+     "worst_day_ticks": -656.0,
+     "exit_mix": {
+      "tp": 0.947,
+      "sl": 0.053
+     },
+     "hold_min_median": 3.2,
+     "past_60m_pct": 10.6,
+     "thru_halt_pct": 4.0,
+     "thru_weekend_pct": 0.0,
+     "gap_fill_pct": 0.0,
+     "std_per_trade": 154.9,
+     "daily_std": 390.3,
+     "mean_over_daily_std": 0.301,
+     "days_below_400": 3,
+     "days_below_800": 0,
+     "days": 22
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 151,
+     "sessions": 22,
+     "mean_ticks": -6.55,
+     "ci95": [
+      -28.64,
+      21.13
+     ],
+     "net_mean_ticks": -8.32,
+     "net_ci95": [
+      -30.47,
+      19.44
+     ],
+     "win_rate": 0.232,
+     "total_net_ticks": -1256.0,
+     "max_drawdown_ticks": -4056.0,
+     "worst_day_ticks": -808.0,
+     "exit_mix": {
+      "sl": 0.768,
+      "tp": 0.232
+     },
+     "hold_min_median": 6.0,
+     "past_60m_pct": 7.9,
+     "thru_halt_pct": 3.3,
+     "thru_weekend_pct": 0.0,
+     "gap_fill_pct": 1.99,
+     "std_per_trade": 145.7,
+     "daily_std": 424.7,
+     "mean_over_daily_std": -0.134,
+     "days_below_400": 5,
+     "days_below_800": 1,
+     "days": 22
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 151,
+     "sessions": 22,
+     "mean_ticks": -18.54,
+     "ci95": [
+      -54.9,
+      27.92
+     ],
+     "net_mean_ticks": -19.91,
+     "net_ci95": [
+      -56.33,
+      26.64
+     ],
+     "win_rate": 0.636,
+     "total_net_ticks": -3006.0,
+     "max_drawdown_ticks": -6747.0,
+     "worst_day_ticks": -1819.0,
+     "exit_mix": {
+      "tp": 0.636,
+      "sl": 0.364
+     },
+     "hold_min_median": 27.8,
+     "past_60m_pct": 30.5,
+     "thru_halt_pct": 13.2,
+     "thru_weekend_pct": 0.0,
+     "gap_fill_pct": 0.0,
+     "std_per_trade": 290.2,
+     "daily_std": 730.6,
+     "mean_over_daily_std": -0.187,
+     "days_below_400": 6,
+     "days_below_800": 3,
+     "days": 22
+    }
+   }
+  },
+  {
+   "month": "2026-04",
+   "choice": {
+    "learned_ab": [
+     1.0,
+     3.0
+    ],
+    "vol_ab": [
+     0.75,
+     3.0
+    ],
+    "flat_matched": [
+     174,
+     517
+    ]
+   },
+   "cluster_first": {
+    "learned": {
+     "label": "learned",
+     "trades": 4916,
+     "sessions": 21,
+     "mean_ticks": 5.93,
+     "ci95": [
+      -13.99,
+      23.87
+     ],
+     "net_mean_ticks": 4.69,
+     "net_ci95": [
+      -15.26,
+      22.65
+     ],
+     "win_rate": 0.758,
+     "total_net_ticks": 23045.9,
+     "max_drawdown_ticks": -37466.1,
+     "worst_day_ticks": -21827.8,
+     "exit_mix": {
+      "tp": 0.758,
+      "sl": 0.242
+     },
+     "hold_min_median": 27.0,
+     "past_60m_pct": 28.7,
+     "thru_halt_pct": 8.8,
+     "thru_weekend_pct": 2.73,
+     "gap_fill_pct": 2.77,
+     "std_per_trade": 259.6,
+     "daily_std": 10740.6,
+     "mean_over_daily_std": 0.102,
+     "days_below_400": 8,
+     "days_below_800": 8,
+     "days": 21
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 4916,
+     "sessions": 21,
+     "mean_ticks": 8.27,
+     "ci95": [
+      -7.76,
+      24.62
+     ],
+     "net_mean_ticks": 7.08,
+     "net_ci95": [
+      -8.97,
+      23.45
+     ],
+     "win_rate": 0.808,
+     "total_net_ticks": 34802.5,
+     "max_drawdown_ticks": -32358.0,
+     "worst_day_ticks": -12601.8,
+     "exit_mix": {
+      "tp": 0.808,
+      "sl": 0.192
+     },
+     "hold_min_median": 20.5,
+     "past_60m_pct": 24.6,
+     "thru_halt_pct": 8.1,
+     "thru_weekend_pct": 1.99,
+     "gap_fill_pct": 2.07,
+     "std_per_trade": 243.1,
+     "daily_std": 8891.8,
+     "mean_over_daily_std": 0.186,
+     "days_below_400": 9,
+     "days_below_800": 9,
+     "days": 21
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 4916,
+     "sessions": 21,
+     "mean_ticks": -1.8,
+     "ci95": [
+      -31.46,
+      30.74
+     ],
+     "net_mean_ticks": -3.07,
+     "net_ci95": [
+      -32.76,
+      29.51
+     ],
+     "win_rate": 0.736,
+     "total_net_ticks": -15074.0,
+     "max_drawdown_ticks": -104142.0,
+     "worst_day_ticks": -38406.0,
+     "exit_mix": {
+      "tp": 0.736,
+      "sl": 0.264
+     },
+     "hold_min_median": 49.0,
+     "past_60m_pct": 44.9,
+     "thru_halt_pct": 19.5,
+     "thru_weekend_pct": 5.37,
+     "gap_fill_pct": 4.23,
+     "std_per_trade": 319.9,
+     "daily_std": 17317.3,
+     "mean_over_daily_std": -0.041,
+     "days_below_400": 11,
+     "days_below_800": 10,
+     "days": 21
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 4916,
+     "sessions": 21,
+     "mean_ticks": -0.62,
+     "ci95": [
+      -21.14,
+      22.74
+     ],
+     "net_mean_ticks": -1.96,
+     "net_ci95": [
+      -22.52,
+      21.43
+     ],
+     "win_rate": 0.657,
+     "total_net_ticks": -9635.0,
+     "max_drawdown_ticks": -62121.0,
+     "worst_day_ticks": -25359.0,
+     "exit_mix": {
+      "tp": 0.657,
+      "sl": 0.343
+     },
+     "hold_min_median": 49.0,
+     "past_60m_pct": 44.2,
+     "thru_halt_pct": 18.0,
+     "thru_weekend_pct": 4.78,
+     "gap_fill_pct": 4.92,
+     "std_per_trade": 300.9,
+     "daily_std": 12151.3,
+     "mean_over_daily_std": -0.038,
+     "days_below_400": 11,
+     "days_below_800": 11,
+     "days": 21
+    }
+   },
+   "live_approx": {
+    "learned": {
+     "label": "learned",
+     "trades": 145,
+     "sessions": 20,
+     "mean_ticks": -18.5,
+     "ci95": [
+      -62.03,
+      23.74
+     ],
+     "net_mean_ticks": -19.77,
+     "net_ci95": [
+      -63.36,
+      22.52
+     ],
+     "win_rate": 0.731,
+     "total_net_ticks": -2866.7,
+     "max_drawdown_ticks": -4597.4,
+     "worst_day_ticks": -1440.3,
+     "exit_mix": {
+      "tp": 0.731,
+      "sl": 0.269
+     },
+     "hold_min_median": 28.0,
+     "past_60m_pct": 27.6,
+     "thru_halt_pct": 4.8,
+     "thru_weekend_pct": 1.38,
+     "gap_fill_pct": 1.38,
+     "std_per_trade": 319.4,
+     "daily_std": 716.6,
+     "mean_over_daily_std": -0.2,
+     "days_below_400": 7,
+     "days_below_800": 5,
+     "days": 20
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 145,
+     "sessions": 20,
+     "mean_ticks": -13.92,
+     "ci95": [
+      -66.31,
+      37.0
+     ],
+     "net_mean_ticks": -15.14,
+     "net_ci95": [
+      -67.59,
+      35.83
+     ],
+     "win_rate": 0.779,
+     "total_net_ticks": -2194.8,
+     "max_drawdown_ticks": -4357.0,
+     "worst_day_ticks": -1973.8,
+     "exit_mix": {
+      "tp": 0.779,
+      "sl": 0.221
+     },
+     "hold_min_median": 33.0,
+     "past_60m_pct": 34.5,
+     "thru_halt_pct": 10.3,
+     "thru_weekend_pct": 2.76,
+     "gap_fill_pct": 0.69,
+     "std_per_trade": 337.8,
+     "daily_std": 872.5,
+     "mean_over_daily_std": -0.126,
+     "days_below_400": 6,
+     "days_below_800": 4,
+     "days": 20
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 145,
+     "sessions": 20,
+     "mean_ticks": -21.09,
+     "ci95": [
+      -62.27,
+      23.65
+     ],
+     "net_mean_ticks": -22.38,
+     "net_ci95": [
+      -63.62,
+      22.43
+     ],
+     "win_rate": 0.71,
+     "total_net_ticks": -3245.0,
+     "max_drawdown_ticks": -5883.0,
+     "worst_day_ticks": -1384.0,
+     "exit_mix": {
+      "tp": 0.71,
+      "sl": 0.29
+     },
+     "hold_min_median": 39.8,
+     "past_60m_pct": 36.6,
+     "thru_halt_pct": 14.5,
+     "thru_weekend_pct": 4.83,
+     "gap_fill_pct": 4.14,
+     "std_per_trade": 321.3,
+     "daily_std": 756.7,
+     "mean_over_daily_std": -0.214,
+     "days_below_400": 7,
+     "days_below_800": 3,
+     "days": 20
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 145,
+     "sessions": 20,
+     "mean_ticks": -9.57,
+     "ci95": [
+      -33.07,
+      18.15
+     ],
+     "net_mean_ticks": -10.92,
+     "net_ci95": [
+      -34.47,
+      16.84
+     ],
+     "win_rate": 0.648,
+     "total_net_ticks": -1584.0,
+     "max_drawdown_ticks": -3862.0,
+     "worst_day_ticks": -812.0,
+     "exit_mix": {
+      "tp": 0.648,
+      "sl": 0.352
+     },
+     "hold_min_median": 38.2,
+     "past_60m_pct": 35.9,
+     "thru_halt_pct": 11.7,
+     "thru_weekend_pct": 4.83,
+     "gap_fill_pct": 5.52,
+     "std_per_trade": 299.1,
+     "daily_std": 452.8,
+     "mean_over_daily_std": -0.175,
+     "days_below_400": 7,
+     "days_below_800": 1,
+     "days": 20
+    }
+   }
+  },
+  {
+   "month": "2026-05",
+   "choice": {
+    "learned_ab": [
+     1.0,
+     2.0
+    ],
+    "vol_ab": [
+     1.5,
+     1.5
+    ],
+    "flat_matched": [
+     141,
+     286
+    ]
+   },
+   "cluster_first": {
+    "learned": {
+     "label": "learned",
+     "trades": 4528,
+     "sessions": 21,
+     "mean_ticks": -0.27,
+     "ci95": [
+      -6.96,
+      7.08
+     ],
+     "net_mean_ticks": -1.6,
+     "net_ci95": [
+      -8.31,
+      5.76
+     ],
+     "win_rate": 0.668,
+     "total_net_ticks": -7243.3,
+     "max_drawdown_ticks": -22770.1,
+     "worst_day_ticks": -8443.3,
+     "exit_mix": {
+      "tp": 0.668,
+      "sl": 0.332
+     },
+     "hold_min_median": 19.8,
+     "past_60m_pct": 14.2,
+     "thru_halt_pct": 2.0,
+     "thru_weekend_pct": 0.24,
+     "gap_fill_pct": 0.51,
+     "std_per_trade": 237.4,
+     "daily_std": 3746.3,
+     "mean_over_daily_std": -0.092,
+     "days_below_400": 10,
+     "days_below_800": 10,
+     "days": 21
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 4528,
+     "sessions": 21,
+     "mean_ticks": -6.65,
+     "ci95": [
+      -12.48,
+      -1.48
+     ],
+     "net_mean_ticks": -8.16,
+     "net_ci95": [
+      -14.0,
+      -2.98
+     ],
+     "win_rate": 0.493,
+     "total_net_ticks": -36931.5,
+     "max_drawdown_ticks": -40444.5,
+     "worst_day_ticks": -10505.0,
+     "exit_mix": {
+      "sl": 0.507,
+      "tp": 0.493
+     },
+     "hold_min_median": 28.8,
+     "past_60m_pct": 24.0,
+     "thru_halt_pct": 5.3,
+     "thru_weekend_pct": 0.8,
+     "gap_fill_pct": 0.88,
+     "std_per_trade": 273.2,
+     "daily_std": 3011.3,
+     "mean_over_daily_std": -0.584,
+     "days_below_400": 14,
+     "days_below_800": 13,
+     "days": 21
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 4528,
+     "sessions": 21,
+     "mean_ticks": 6.86,
+     "ci95": [
+      -2.96,
+      18.55
+     ],
+     "net_mean_ticks": 5.54,
+     "net_ci95": [
+      -4.3,
+      17.26
+     ],
+     "win_rate": 0.684,
+     "total_net_ticks": 25100.0,
+     "max_drawdown_ticks": -21102.0,
+     "worst_day_ticks": -7200.0,
+     "exit_mix": {
+      "tp": 0.684,
+      "sl": 0.316
+     },
+     "hold_min_median": 17.6,
+     "past_60m_pct": 18.3,
+     "thru_halt_pct": 5.0,
+     "thru_weekend_pct": 0.31,
+     "gap_fill_pct": 0.6,
+     "std_per_trade": 200.6,
+     "daily_std": 5278.7,
+     "mean_over_daily_std": 0.226,
+     "days_below_400": 10,
+     "days_below_800": 9,
+     "days": 21
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 4528,
+     "sessions": 21,
+     "mean_ticks": -1.91,
+     "ci95": [
+      -13.92,
+      11.92
+     ],
+     "net_mean_ticks": -3.25,
+     "net_ci95": [
+      -15.27,
+      10.6
+     ],
+     "win_rate": 0.664,
+     "total_net_ticks": -14701.0,
+     "max_drawdown_ticks": -63013.0,
+     "worst_day_ticks": -12714.0,
+     "exit_mix": {
+      "tp": 0.664,
+      "sl": 0.336
+     },
+     "hold_min_median": 37.5,
+     "past_60m_pct": 37.0,
+     "thru_halt_pct": 11.9,
+     "thru_weekend_pct": 1.04,
+     "gap_fill_pct": 1.1,
+     "std_per_trade": 287.7,
+     "daily_std": 6887.0,
+     "mean_over_daily_std": -0.102,
+     "days_below_400": 14,
+     "days_below_800": 13,
+     "days": 21
+    }
+   },
+   "live_approx": {
+    "learned": {
+     "label": "learned",
+     "trades": 159,
+     "sessions": 21,
+     "mean_ticks": 18.49,
+     "ci95": [
+      -13.66,
+      50.06
+     ],
+     "net_mean_ticks": 17.19,
+     "net_ci95": [
+      -15.02,
+      48.83
+     ],
+     "win_rate": 0.704,
+     "total_net_ticks": 2733.3,
+     "max_drawdown_ticks": -2420.0,
+     "worst_day_ticks": -891.0,
+     "exit_mix": {
+      "tp": 0.704,
+      "sl": 0.296
+     },
+     "hold_min_median": 20.0,
+     "past_60m_pct": 14.5,
+     "thru_halt_pct": 5.7,
+     "thru_weekend_pct": 0.0,
+     "gap_fill_pct": 0.0,
+     "std_per_trade": 266.7,
+     "daily_std": 602.0,
+     "mean_over_daily_std": 0.216,
+     "days_below_400": 4,
+     "days_below_800": 1,
+     "days": 21
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 159,
+     "sessions": 21,
+     "mean_ticks": -36.09,
+     "ci95": [
+      -75.37,
+      3.27
+     ],
+     "net_mean_ticks": -37.63,
+     "net_ci95": [
+      -76.96,
+      1.78
+     ],
+     "win_rate": 0.465,
+     "total_net_ticks": -5982.5,
+     "max_drawdown_ticks": -6763.5,
+     "worst_day_ticks": -2290.0,
+     "exit_mix": {
+      "sl": 0.535,
+      "tp": 0.465
+     },
+     "hold_min_median": 39.5,
+     "past_60m_pct": 38.4,
+     "thru_halt_pct": 15.7,
+     "thru_weekend_pct": 1.26,
+     "gap_fill_pct": 1.89,
+     "std_per_trade": 336.2,
+     "daily_std": 733.2,
+     "mean_over_daily_std": -0.389,
+     "days_below_400": 6,
+     "days_below_800": 4,
+     "days": 21
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 159,
+     "sessions": 21,
+     "mean_ticks": -4.02,
+     "ci95": [
+      -25.84,
+      15.75
+     ],
+     "net_mean_ticks": -5.36,
+     "net_ci95": [
+      -27.23,
+      14.45
+     ],
+     "win_rate": 0.66,
+     "total_net_ticks": -852.0,
+     "max_drawdown_ticks": -2396.0,
+     "worst_day_ticks": -732.0,
+     "exit_mix": {
+      "tp": 0.66,
+      "sl": 0.34
+     },
+     "hold_min_median": 12.2,
+     "past_60m_pct": 14.5,
+     "thru_halt_pct": 10.1,
+     "thru_weekend_pct": 0.0,
+     "gap_fill_pct": 0.0,
+     "std_per_trade": 203.3,
+     "daily_std": 370.6,
+     "mean_over_daily_std": -0.109,
+     "days_below_400": 5,
+     "days_below_800": 0,
+     "days": 21
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 159,
+     "sessions": 21,
+     "mean_ticks": -0.08,
+     "ci95": [
+      -36.13,
+      37.27
+     ],
+     "net_mean_ticks": -1.42,
+     "net_ci95": [
+      -37.52,
+      36.0
+     ],
+     "win_rate": 0.667,
+     "total_net_ticks": -225.0,
+     "max_drawdown_ticks": -3228.0,
+     "worst_day_ticks": -1011.0,
+     "exit_mix": {
+      "tp": 0.667,
+      "sl": 0.333
+     },
+     "hold_min_median": 27.0,
+     "past_60m_pct": 32.7,
+     "thru_halt_pct": 15.7,
+     "thru_weekend_pct": 1.26,
+     "gap_fill_pct": 1.26,
+     "std_per_trade": 292.7,
+     "daily_std": 650.5,
+     "mean_over_daily_std": -0.016,
+     "days_below_400": 6,
+     "days_below_800": 4,
+     "days": 21
+    }
+   }
+  },
+  {
+   "month": "2026-06",
+   "choice": {
+    "learned_ab": [
+     1.0,
+     0.5
+    ],
+    "vol_ab": [
+     1.0,
+     3.0
+    ],
+    "flat_matched": [
+     158,
+     79
+    ]
+   },
+   "cluster_first": {
+    "learned": {
+     "label": "learned",
+     "trades": 3797,
+     "sessions": 18,
+     "mean_ticks": 3.04,
+     "ci95": [
+      -4.57,
+      10.99
+     ],
+     "net_mean_ticks": 1.38,
+     "net_ci95": [
+      -6.26,
+      9.35
+     ],
+     "win_rate": 0.34,
+     "total_net_ticks": 5254.8,
+     "max_drawdown_ticks": -18109.9,
+     "worst_day_ticks": -6111.4,
+     "exit_mix": {
+      "sl": 0.66,
+      "tp": 0.34
+     },
+     "hold_min_median": 4.8,
+     "past_60m_pct": 0.2,
+     "thru_halt_pct": 0.0,
+     "thru_weekend_pct": 0.03,
+     "gap_fill_pct": 0.21,
+     "std_per_trade": 153.8,
+     "daily_std": 3687.5,
+     "mean_over_daily_std": 0.079,
+     "days_below_400": 8,
+     "days_below_800": 6,
+     "days": 18
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 3797,
+     "sessions": 18,
+     "mean_ticks": 9.26,
+     "ci95": [
+      -13.5,
+      32.91
+     ],
+     "net_mean_ticks": 8.02,
+     "net_ci95": [
+      -14.77,
+      31.7
+     ],
+     "win_rate": 0.765,
+     "total_net_ticks": 30461.0,
+     "max_drawdown_ticks": -41173.0,
+     "worst_day_ticks": -16363.0,
+     "exit_mix": {
+      "tp": 0.765,
+      "sl": 0.235
+     },
+     "hold_min_median": 22.8,
+     "past_60m_pct": 27.2,
+     "thru_halt_pct": 10.2,
+     "thru_weekend_pct": 1.71,
+     "gap_fill_pct": 1.76,
+     "std_per_trade": 350.1,
+     "daily_std": 11256.9,
+     "mean_over_daily_std": 0.15,
+     "days_below_400": 7,
+     "days_below_800": 7,
+     "days": 18
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 3797,
+     "sessions": 18,
+     "mean_ticks": 1.08,
+     "ci95": [
+      -4.23,
+      6.89
+     ],
+     "net_mean_ticks": -0.58,
+     "net_ci95": [
+      -5.92,
+      5.25
+     ],
+     "win_rate": 0.338,
+     "total_net_ticks": -2195.0,
+     "max_drawdown_ticks": -19238.0,
+     "worst_day_ticks": -5263.0,
+     "exit_mix": {
+      "sl": 0.662,
+      "tp": 0.338
+     },
+     "hold_min_median": 3.2,
+     "past_60m_pct": 1.3,
+     "thru_halt_pct": 0.0,
+     "thru_weekend_pct": 0.03,
+     "gap_fill_pct": 0.47,
+     "std_per_trade": 112.8,
+     "daily_std": 2644.6,
+     "mean_over_daily_std": -0.046,
+     "days_below_400": 7,
+     "days_below_800": 6,
+     "days": 18
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 3797,
+     "sessions": 18,
+     "mean_ticks": 8.41,
+     "ci95": [
+      -4.02,
+      21.64
+     ],
+     "net_mean_ticks": 7.09,
+     "net_ci95": [
+      -5.37,
+      20.34
+     ],
+     "win_rate": 0.677,
+     "total_net_ticks": 26902.0,
+     "max_drawdown_ticks": -27668.0,
+     "worst_day_ticks": -11337.0,
+     "exit_mix": {
+      "tp": 0.677,
+      "sl": 0.323
+     },
+     "hold_min_median": 20.5,
+     "past_60m_pct": 26.2,
+     "thru_halt_pct": 10.3,
+     "thru_weekend_pct": 3.08,
+     "gap_fill_pct": 3.48,
+     "std_per_trade": 287.9,
+     "daily_std": 6107.2,
+     "mean_over_daily_std": 0.245,
+     "days_below_400": 7,
+     "days_below_800": 7,
+     "days": 18
+    }
+   },
+   "live_approx": {
+    "learned": {
+     "label": "learned",
+     "trades": 130,
+     "sessions": 16,
+     "mean_ticks": 15.99,
+     "ci95": [
+      -4.56,
+      40.09
+     ],
+     "net_mean_ticks": 14.36,
+     "net_ci95": [
+      -6.28,
+      38.55
+     ],
+     "win_rate": 0.369,
+     "total_net_ticks": 1866.6,
+     "max_drawdown_ticks": -1618.9,
+     "worst_day_ticks": -769.9,
+     "exit_mix": {
+      "sl": 0.631,
+      "tp": 0.369
+     },
+     "hold_min_median": 4.0,
+     "past_60m_pct": 0.0,
+     "thru_halt_pct": 0.0,
+     "thru_weekend_pct": 0.0,
+     "gap_fill_pct": 0.0,
+     "std_per_trade": 170.8,
+     "daily_std": 354.9,
+     "mean_over_daily_std": 0.329,
+     "days_below_400": 1,
+     "days_below_800": 0,
+     "days": 16
+    },
+    "vol_scaled": {
+     "label": "vol_scaled",
+     "trades": 130,
+     "sessions": 16,
+     "mean_ticks": 12.87,
+     "ci95": [
+      -30.2,
+      69.65
+     ],
+     "net_mean_ticks": 11.64,
+     "net_ci95": [
+      -31.48,
+      68.48
+     ],
+     "win_rate": 0.769,
+     "total_net_ticks": 1513.0,
+     "max_drawdown_ticks": -4245.0,
+     "worst_day_ticks": -1467.0,
+     "exit_mix": {
+      "tp": 0.769,
+      "sl": 0.231
+     },
+     "hold_min_median": 23.6,
+     "past_60m_pct": 30.0,
+     "thru_halt_pct": 9.2,
+     "thru_weekend_pct": 2.31,
+     "gap_fill_pct": 3.08,
+     "std_per_trade": 397.4,
+     "daily_std": 823.0,
+     "mean_over_daily_std": 0.115,
+     "days_below_400": 4,
+     "days_below_800": 2,
+     "days": 16
+    },
+    "flat_matched": {
+     "label": "flat_matched",
+     "trades": 130,
+     "sessions": 16,
+     "mean_ticks": 12.48,
+     "ci95": [
+      -2.47,
+      32.42
+     ],
+     "net_mean_ticks": 10.85,
+     "net_ci95": [
+      -4.16,
+      30.89
+     ],
+     "win_rate": 0.377,
+     "total_net_ticks": 1411.0,
+     "max_drawdown_ticks": -1382.0,
+     "worst_day_ticks": -511.0,
+     "exit_mix": {
+      "sl": 0.623,
+      "tp": 0.377
+     },
+     "hold_min_median": 2.0,
+     "past_60m_pct": 1.5,
+     "thru_halt_pct": 0.8,
+     "thru_weekend_pct": 0.77,
+     "gap_fill_pct": 0.77,
+     "std_per_trade": 121.0,
+     "daily_std": 270.6,
+     "mean_over_daily_std": 0.326,
+     "days_below_400": 1,
+     "days_below_800": 0,
+     "days": 16
+    },
+    "flat200_400": {
+     "label": "flat200_400",
+     "trades": 130,
+     "sessions": 16,
+     "mean_ticks": 3.8,
+     "ci95": [
+      -19.84,
+      39.29
+     ],
+     "net_mean_ticks": 2.47,
+     "net_ci95": [
+      -21.21,
+      38.02
+     ],
+     "win_rate": 0.669,
+     "total_net_ticks": 321.0,
+     "max_drawdown_ticks": -1847.0,
+     "worst_day_ticks": -629.0,
+     "exit_mix": {
+      "tp": 0.669,
+      "sl": 0.331
+     },
+     "hold_min_median": 12.2,
+     "past_60m_pct": 16.2,
+     "thru_halt_pct": 5.4,
+     "thru_weekend_pct": 2.31,
+     "gap_fill_pct": 2.31,
+     "std_per_trade": 289.7,
+     "daily_std": 475.0,
+     "mean_over_daily_std": 0.042,
+     "days_below_400": 5,
+     "days_below_800": 0,
+     "days": 16
+    }
+   }
+  }
+ ],
+ "daily_limits_ticks": [
+  -400,
+  -800
+ ],
+ "costs": {
+  "commission_rt_ticks": 1.0,
+  "stop_slip_ticks": 1.0
+ },
+ "pooled_test_months": {
+  "cluster_first": {
+   "learned": {
+    "label": "learned",
+    "trades": 22691,
+    "sessions": 102,
+    "mean_ticks": 0.63,
+    "ci95": [
+     -4.39,
+     5.83
+    ],
+    "net_mean_ticks": -0.79,
+    "net_ci95": [
+     -5.79,
+     4.4
+    ],
+    "win_rate": 0.588,
+    "total_net_ticks": -17848.2,
+    "max_drawdown_ticks": -55832.2,
+    "worst_day_ticks": -21827.8,
+    "exit_mix": {
+     "tp": 0.588,
+     "sl": 0.412
+    },
+    "hold_min_median": 9.0,
+    "past_60m_pct": 10.8,
+    "thru_halt_pct": 2.7,
+    "thru_weekend_pct": 0.76,
+    "gap_fill_pct": 0.96,
+    "std_per_trade": 202.2,
+    "daily_std": 5930.6,
+    "mean_over_daily_std": -0.03,
+    "days_below_400": 51,
+    "days_below_800": 49,
+    "days": 102
+   },
+   "vol_scaled": {
+    "label": "vol_scaled",
+    "trades": 22691,
+    "sessions": 102,
+    "mean_ticks": 4.4,
+    "ci95": [
+     -1.77,
+     10.71
+    ],
+    "net_mean_ticks": 3.18,
+    "net_ci95": [
+     -3.02,
+     9.5
+    ],
+    "win_rate": 0.775,
+    "total_net_ticks": 72133.0,
+    "max_drawdown_ticks": -70680.5,
+    "worst_day_ticks": -16363.0,
+    "exit_mix": {
+     "tp": 0.775,
+     "sl": 0.225
+    },
+    "hold_min_median": 14.8,
+    "past_60m_pct": 19.3,
+    "thru_halt_pct": 6.0,
+    "thru_weekend_pct": 1.1,
+    "gap_fill_pct": 1.21,
+    "std_per_trade": 253.7,
+    "daily_std": 7074.0,
+    "mean_over_daily_std": 0.1,
+    "days_below_400": 45,
+    "days_below_800": 44,
+    "days": 102
+   },
+   "flat_matched": {
+    "label": "flat_matched",
+    "trades": 22691,
+    "sessions": 102,
+    "mean_ticks": 0.25,
+    "ci95": [
+     -7.35,
+     7.96
+    ],
+    "net_mean_ticks": -1.16,
+    "net_ci95": [
+     -8.77,
+     6.57
+    ],
+    "win_rate": 0.586,
+    "total_net_ticks": -26353.0,
+    "max_drawdown_ticks": -103623.0,
+    "worst_day_ticks": -38406.0,
+    "exit_mix": {
+     "tp": 0.586,
+     "sl": 0.414
+    },
+    "hold_min_median": 9.2,
+    "past_60m_pct": 15.6,
+    "thru_halt_pct": 6.0,
+    "thru_weekend_pct": 1.32,
+    "gap_fill_pct": 1.3,
+    "std_per_trade": 200.5,
+    "daily_std": 8435.7,
+    "mean_over_daily_std": -0.031,
+    "days_below_400": 51,
+    "days_below_800": 46,
+    "days": 102
+   },
+   "flat200_400": {
+    "label": "flat200_400",
+    "trades": 22691,
+    "sessions": 102,
+    "mean_ticks": 0.37,
+    "ci95": [
+     -7.06,
+     7.84
+    ],
+    "net_mean_ticks": -0.97,
+    "net_ci95": [
+     -8.4,
+     6.52
+    ],
+    "win_rate": 0.665,
+    "total_net_ticks": -21920.0,
+    "max_drawdown_ticks": -104041.0,
+    "worst_day_ticks": -25359.0,
+    "exit_mix": {
+     "tp": 0.665,
+     "sl": 0.335
+    },
+    "hold_min_median": 35.0,
+    "past_60m_pct": 35.1,
+    "thru_halt_pct": 13.2,
+    "thru_weekend_pct": 2.37,
+    "gap_fill_pct": 2.54,
+    "std_per_trade": 300.5,
+    "daily_std": 8475.0,
+    "mean_over_daily_std": -0.025,
+    "days_below_400": 54,
+    "days_below_800": 53,
+    "days": 102
+   },
+   "learned_minus_flat_matched": {
+    "mean": 0.37,
+    "ci95": [
+     -6.33,
+     6.57
+    ]
+   },
+   "learned_minus_vol_scaled": {
+    "mean": -3.97,
+    "ci95": [
+     -10.36,
+     2.21
+    ]
+   },
+   "vol_scaled_minus_flat_matched": {
+    "mean": 4.34,
+    "ci95": [
+     -3.96,
+     12.27
+    ]
+   }
+  },
+  "filtered_flip": {
+   "learned": {
+    "label": "learned",
+    "trades": 707,
+    "sessions": 98,
+    "mean_ticks": 6.35,
+    "ci95": [
+     -8.41,
+     21.83
+    ],
+    "net_mean_ticks": 4.93,
+    "net_ci95": [
+     -9.87,
+     20.43
+    ],
+    "win_rate": 0.588,
+    "total_net_ticks": 3487.9,
+    "max_drawdown_ticks": -5638.6,
+    "worst_day_ticks": -1440.3,
+    "exit_mix": {
+     "tp": 0.588,
+     "sl": 0.412
+    },
+    "hold_min_median": 8.5,
+    "past_60m_pct": 9.9,
+    "thru_halt_pct": 2.8,
+    "thru_weekend_pct": 0.57,
+    "gap_fill_pct": 0.99,
+    "std_per_trade": 230.3,
+    "daily_std": 562.0,
+    "mean_over_daily_std": 0.063,
+    "days_below_400": 19,
+    "days_below_800": 8,
+    "days": 98
+   },
+   "vol_scaled": {
+    "label": "vol_scaled",
+    "trades": 707,
+    "sessions": 98,
+    "mean_ticks": 6.49,
+    "ci95": [
+     -13.41,
+     28.04
+    ],
+    "net_mean_ticks": 5.26,
+    "net_ci95": [
+     -14.67,
+     26.83
+    ],
+    "win_rate": 0.768,
+    "total_net_ticks": 3717.8,
+    "max_drawdown_ticks": -9939.2,
+    "worst_day_ticks": -2290.0,
+    "exit_mix": {
+     "tp": 0.768,
+     "sl": 0.232
+    },
+    "hold_min_median": 18.0,
+    "past_60m_pct": 26.6,
+    "thru_halt_pct": 10.5,
+    "thru_weekend_pct": 1.84,
+    "gap_fill_pct": 1.7,
+    "std_per_trade": 305.8,
+    "daily_std": 765.3,
+    "mean_over_daily_std": 0.05,
+    "days_below_400": 23,
+    "days_below_800": 10,
+    "days": 98
+   },
+   "flat_matched": {
+    "label": "flat_matched",
+    "trades": 707,
+    "sessions": 98,
+    "mean_ticks": -1.7,
+    "ci95": [
+     -13.88,
+     12.15
+    ],
+    "net_mean_ticks": -3.13,
+    "net_ci95": [
+     -15.35,
+     10.75
+    ],
+    "win_rate": 0.576,
+    "total_net_ticks": -2212.0,
+    "max_drawdown_ticks": -7817.0,
+    "worst_day_ticks": -1384.0,
+    "exit_mix": {
+     "tp": 0.576,
+     "sl": 0.424
+    },
+    "hold_min_median": 7.2,
+    "past_60m_pct": 13.4,
+    "thru_halt_pct": 6.8,
+    "thru_weekend_pct": 1.27,
+    "gap_fill_pct": 1.7,
+    "std_per_trade": 200.4,
+    "daily_std": 462.7,
+    "mean_over_daily_std": -0.049,
+    "days_below_400": 19,
+    "days_below_800": 4,
+    "days": 98
+   },
+   "flat200_400": {
+    "label": "flat200_400",
+    "trades": 707,
+    "sessions": 98,
+    "mean_ticks": -2.86,
+    "ci95": [
+     -17.55,
+     14.11
+    ],
+    "net_mean_ticks": -4.2,
+    "net_ci95": [
+     -18.91,
+     12.79
+    ],
+    "win_rate": 0.659,
+    "total_net_ticks": -2969.0,
+    "max_drawdown_ticks": -8208.0,
+    "worst_day_ticks": -1819.0,
+    "exit_mix": {
+     "tp": 0.659,
+     "sl": 0.341
+    },
+    "hold_min_median": 26.0,
+    "past_60m_pct": 29.3,
+    "thru_halt_pct": 13.6,
+    "thru_weekend_pct": 2.4,
+    "gap_fill_pct": 2.55,
+    "std_per_trade": 297.0,
+    "daily_std": 612.3,
+    "mean_over_daily_std": -0.049,
+    "days_below_400": 29,
+    "days_below_800": 10,
+    "days": 98
+   },
+   "learned_minus_flat_matched": {
+    "mean": 8.06,
+    "ci95": [
+     -4.53,
+     19.53
+    ]
+   },
+   "learned_minus_vol_scaled": {
+    "mean": -0.33,
+    "ci95": [
+     -19.35,
+     20.89
+    ]
+   },
+   "vol_scaled_minus_flat_matched": {
+    "mean": 8.39,
+    "ci95": [
+     -10.96,
+     27.15
+    ]
+   }
+  }
+ }
+}
