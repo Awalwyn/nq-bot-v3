@@ -167,6 +167,8 @@ EXCLUDED_FEATURES = {
     "volume": "raw volume drifts by regime/session; volume_ratio carries the scale-free version",
     "filter_config": "string; redundant with the individual *_pass flags",
     "day_of_week": "string; add later via a fixed weekday->int map if useful",
+    "minutes_since_rth_open": "duplicate of minute_of_day (constant offset; Step 3 audit)",
+    "session_pass": "duplicate of is_rth (identical on every row; Step 3 audit)",
 }
 
 # Point-in-time columns known at entry that are not in FEATURE but belong in X.

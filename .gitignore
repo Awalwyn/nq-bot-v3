@@ -1,8 +1,13 @@
+# Data never goes in git: it lives in C:\ProgramData\nqbotv3\data (ThinkPad)
 data/
-models/
 *.csv
 *.parquet
+*.zip
+!docs/review_examples/*.csv
+# trained models live in C:\ProgramData\nqbotv3\models
+models/
 *.onnx
+# python / editors
 .venv/
 __pycache__/
 *.pyc

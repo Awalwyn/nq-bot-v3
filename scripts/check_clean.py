@@ -80,6 +80,20 @@ def main():
         ent = entries.to_entries(df, policy="first")
         check(f"{nm}: entries.py returns one row per cluster", len(ent) == df["signal_cluster_id"].nunique())
 
+    # 5b. Step 3 audit repairs (ADR 0014)
+    dropped = set(man["config"].get("drop_sessions", {}))
+    check("decision-dropped sessions absent",
+          not (dropped & (set(dev["session_date"]) | set(hold["session_date"]))))
+    for df, nm in ((dev, "dev"), (hold, "holdout")):
+        t = df["signal_time"]
+        tod = t.dt.hour * 3600 + t.dt.minute * 60 + t.dt.second
+        dow = t.dt.dayofweek
+        bad_t = ((tod > 57600) & (tod <= 61200)) | ((dow == 4) & (tod > 57600)) | (dow == 5)
+        check(f"{nm}: no signals inside the daily halt or the weekend", not bad_t.any())
+    check("delta_60m removed from clean file", "delta_60m" not in dev.columns)
+    check("duplicate features excluded",
+          {"minutes_since_rth_open", "session_pass"} <= set(schema.EXCLUDED_FEATURES))
+
     # 6. extended rows are full, uncensored 60-min windows
     ext = dev[dev["label_source"] == "bars_extended_60m"]
     check("extended rows uncensored", (ext["right_censored"] == 0).all())

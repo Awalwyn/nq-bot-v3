@@ -1,6 +1,6 @@
 # NQ Bot v3 — Phase 2 Data-Handling Spec (anti-contamination / anti-overfitting)
 
-_Agreed 11 Oct 2026. This is the contract for every Phase 2 step. If a step needs to break a rule here, change this doc first, with the reason._
+_Agreed 11 Oct 2026; updated the same night after the Step 3 audit (ADR 0014). This is the contract for every Phase 2 step. If a step needs to break a rule here, change this doc first, with the reason._
 
 ## 0. Operating decisions (from Avery, 11 Oct 2026)
 
@@ -9,6 +9,8 @@ _Agreed 11 Oct 2026. This is the contract for every Phase 2 step. If a step need
 | Sessions | **Train on RTH + overnight; go live on RTH only** | `is_rth` is a model feature; every result is reported RTH and overnight separately; the go/no-go is judged on **RTH**. We also train an RTH-only model and keep whichever is better on RTH. Overnight goes live later only after passing its own holdout test. |
 | Force-close at 15:00 CT | **No** | The logger's 15:00 RTH cut is not the real outcome → those windows are rebuilt to the full 60 min from bars (done, §2). The flat baseline has no timeout live, so the evaluator must replay it past 60 min on the bars file until TP/SL. |
 | Position limit | **Max 7 contracts** | Evaluation simulates the live position rules: skip a signal when 7 are already open. **Assumed** until confirmed: 1 contract per entry, opposite-direction signals ignored while in a position (the strategy's "Ignore Opposite Signal While In Position"). Affects scoring only, not training. |
+
+| Entry population | **OPEN — Matthew to confirm** | The v2 live strategies enter on the classifier's filtered state flip (`StartLongTrade`). They use `EntriesPerDirection = 1` with all 7 filters on. That is ~1,830 RTH entries/year (~7/day), not the ~56K cluster-first RTH entries. The thesis test is scored on whatever the live bot actually takes. Need: which strategy is live, filters on/off, how "max 7 contracts" is implemented, first-bar vs any-bar entry. |
 
 Prop-firm note: if trading eval/funded accounts, check the firm's end-of-day rule. Many auto-liquidate near the close, which would be a force-close in practice and must be modelled.
 
@@ -29,17 +31,19 @@ Prop-firm note: if trading eval/funded accounts, check the firm's end-of-day rul
 4. **15:00-cut RTH windows are extended** to the full 60 min from bars. They are rebuilt only if the bars cover the full window with no internal hole > 300 s; otherwise they stay censored.
 5. `session_date` is recomputed on the CME 17:00 CT roll (the logger's copy is kept as `session_date_logger`).
 6. `dist_vwap_ticks` is removed from the clean file (wrong VWAP session boundary).
+7. **Session 2026-06-12 dropped.** It was a roll day on the expiring contract (RTH volume 43/bar vs 320–567 nearby). (ADR 0014)
+8. **Halt-time signals dropped.** These are stamped after 16:00:00 and up to 17:00:00 CT, or after Friday's close. None were entries. (ADR 0014)
+9. **`delta_60m` removed.** It is 98.5% empty in the logger; `final_delta_ticks` is the 60-min move. (ADR 0014)
 
-**Rebuild validated** on 20,000 uncensored rows (bars vs tick labels):
+**Rebuild validated** on ~19,800 uncensored rows (bars vs tick labels; n = rows actually compared):
 
-| Field | Agreement | Tolerance |
-|---|---|---|
-| mfe_ticks | 100% | 1 tick |
-| mae_ticks | 99.995% | 1 tick |
-| minutes_to_mfe / minutes_to_mae | 100% | 15 s |
-| delta_15m | 99.99% | 2 ticks |
-| delta_60m | 100% | 2 ticks |
-| final_delta_ticks | 99.6% | 2 ticks |
+| Field | n compared | Agreement | Tolerance |
+|---|---|---|---|
+| mfe_ticks | 19,791 | 99.995% | 1 tick |
+| mae_ticks | 19,791 | 100% | 1 tick |
+| minutes_to_mfe / minutes_to_mae | ~19,600 | 100% | 15 s |
+| delta_15m / delta_30m | 19,791 | 99.99% | 2 ticks |
+| final_delta_ticks | 19,791 | 99.6% | 2 ticks |
 
 **Result on run_20261011T220004Z_0ff4b383:**
 
@@ -49,15 +53,19 @@ Prop-firm note: if trading eval/funded accounts, check the firm's end-of-day rul
 | Quarantined session tails (12 sessions) | −10,777 | −1,954 |
 | Bar/tick disagreement | −1,785 | −267 |
 | No bars in window | −1,089 | −197 |
-| Cluster entry failed | −949 | — |
+| Session 2026-06-12 (wrong contract) | −4,643 | −814 |
+| Cluster entry failed | −948 | — |
+| Halt-time signals | −4 | — |
 | Embargo (2026-06-30) | −4,689 | −898 |
-| **Dev** | **795,692** | **143,446** (40,245 RTH / 103,201 overnight) |
+| **Dev** | **791,045** | **142,632** (40,013 RTH / 102,619 overnight) |
 | **Holdout** | **309,503** | **55,551** (15,953 RTH / 39,598 overnight) |
 
 - **15:00-cut windows extended:** 47,943 signals (101 failed coverage and stay censored).
 - **Censored entries left:** dev 6,313, holdout 2,331. These are mostly overnight windows crossing the 16:00 halt or feed holes.
 - **Quarantined sessions:** 2025-12-23, 2026-03-20, 03-27, 04-10, 05-22, 06-10, 06-11, 06-25, 07-20, 07-24, 07-29, 08-28.
-- Guard suite `scripts/check_clean.py`: 19/19 pass.
+- Guard suite `scripts/check_clean.py`: 24/24 pass.
+- **Roll seam to confirm:** Dec 11 2025 17:00 reopen gap of −535 ticks, the largest weekday halt gap of the year. Labels are unaffected; long-lookback features (EMA800 distance) may carry it for a few hours. Matthew to send NT's NQ rollover table.
+- **Monday overnight** features are skewed by the missing Sunday hours (p90 |dist_ema800_atr| 34.0 vs 22.7). Watch this in the RTH-vs-overnight results.
 
 **Data notes for Matthew's next run:**
 - Template "Default 24 x 5" dropped **Sunday 17:00–23:00 CT** every week (overnight only).
@@ -73,6 +81,8 @@ Prop-firm note: if trading eval/funded accounts, check the firm's end-of-day rul
   - raw `volume`
   - `filter_config`
   - `day_of_week`
+  - `minutes_since_rth_open` (duplicate of `minute_of_day`)
+  - `session_pass` (duplicate of `is_rth`)
 - **Added:** `score`, `is_long`, `is_rth`.
 - **Forbidden in X:** all labels plus the clean-audit columns (`xs_*` are computed from labels).
 
@@ -96,7 +106,9 @@ Prop-firm note: if trading eval/funded accounts, check the firm's end-of-day rul
 
 ## 6. The thesis test (pre-registered)
 
-- **Where:** on the holdout, **RTH entries**, under the live position rules (max 7 contracts).
+- **Where:** on the holdout, on the **entries the live bot would actually take** (RTH, live filters and entry rule — see §0), under the live position rules.
+- **Replay rules:** run until TP/SL with no 60-min cut, through the 16:00 halt and weekends. A bar that opens past the stop or target fills at that bar's open (gap-through; ~3.4% of flat trades, about 3 ticks a trade). SL wins a same-bar tie.
+- **Sample size:** if the live population is the filtered state-flip set, the holdout holds only ~500 RTH trades. The CI rule below is what protects us from calling noise a win.
 - **Pass condition:** the learned exit must beat **both**:
   - flat 200/400, replayed past 60 min until TP/SL because there is no force-close live
   - the **best flat TP/SL tuned on dev**

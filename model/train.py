@@ -1,5 +1,9 @@
 """
-train.py — fit an XGBoost regressor for one target (one of the "heads").
+train.py — SUPERSEDED by model/walkforward.py (ADR 0016). Kept for the pilot
+only: it scores on a single split and passes the test set as eval_set, which
+must never be combined with early stopping. Use walkforward.py.
+
+Original: fit an XGBoost regressor for one target (one of the "heads").
 
 Plumbing only. The hyperparameters below are PLACEHOLDERS to be tuned on real
 data; the point of this file is a correct, reproducible harness:

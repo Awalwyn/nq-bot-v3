@@ -60,6 +60,14 @@ CONFIG = {
     "embargo_sessions": ["2026-06-30"],
     # rows used to validate the bar-rebuild procedure against tick labels
     "rebuild_validation_rows": 20000,
+    # whole CME sessions removed, with the reason (ADR 0014, Step 3 audit)
+    "drop_sessions": {
+        "2026-06-12": "roll_expiring_contract: merged series stayed on the expiring JUN contract "
+                      "(RTH volume 43/bar vs 320-567 on nearby days)",
+    },
+    # the CME daily halt (Central): signals stamped inside it are not tradable
+    "halt_start_hhmm": 1600,
+    "halt_end_hhmm": 1700,
 }
 
 # Columns removed from the clean dataset entirely, so they cannot be used by
@@ -68,9 +76,12 @@ CONFIG = {
 DROP_COLUMNS = {
     "dist_vwap_ticks": "VWAP reset on the wrong session boundary (template 'Default 24 x 5'); "
                        "re-add only when NT8 computes it identically live",
+    "delta_60m": "~98.5% empty in the logger (the 60-min horizon falls on the window edge); "
+                 "final_delta_ticks is the 60-min move",
 }
 
-HORIZONS = [1, 3, 5, 10, 15, 30, 60]
+# delta_60m is dropped (above), so it is not rebuilt either
+HORIZONS = [1, 3, 5, 10, 15, 30]
 
 
 # ---------------------------------------------------------------------------
@@ -229,10 +240,12 @@ def validate_rebuild(s: pd.DataFrame, bp: BarPath, n: int, seed: int = 7) -> dic
     ref_rows = sample.loc[rb.index]
     rep = {"sampled": int(len(sample)), "rebuilt": int(len(rb))}
     for col, tol in [("mfe_ticks", 1), ("mae_ticks", 1), ("minutes_to_mfe", 0.25),
-                     ("minutes_to_mae", 0.25), ("delta_15m", 2), ("delta_60m", 2),
+                     ("minutes_to_mae", 0.25), ("delta_15m", 2), ("delta_30m", 2),
                      ("final_delta_ticks", 2)]:
         d = (rb[col] - ref_rows[col]).abs().dropna()
-        rep[col] = {"within_tol_pct": round(100 * float((d <= tol).mean()), 3),
+        # n_compared is reported so a mostly-empty field can't pass on a sliver
+        rep[col] = {"n_compared": int(len(d)),
+                    "within_tol_pct": round(100 * float((d <= tol).mean()), 3),
                     "tol": tol, "median_abs": float(d.median()),
                     "p99_abs": float(d.quantile(0.99))}
     return rep
@@ -296,6 +309,24 @@ def run(signals_path, bars_path, meta_path, out_dir):
     s.loc[nob, "_fail"] = "no_bars_in_window"
     dis = (~nob) & (s["xs_dmax"] > CONFIG["xsource_tol_ticks"])
     s.loc[dis, "_fail"] = "bar_tick_disagree"
+
+    # -- whole sessions removed by decision (e.g. roll day on the wrong contract)
+    for sess in CONFIG["drop_sessions"]:
+        m = (s["session_date"] == sess) & (s["_fail"] == "")
+        s.loc[m, "_fail"] = "dropped_session"
+
+    # -- signals stamped inside the daily halt / after Friday's close ---------
+    # close-stamped 15s bars: the 16:00:00 bar is the last tradable one and the
+    # first bar after the reopen is stamped 17:00:15
+    tod = (s["signal_time"].dt.hour * 3600 + s["signal_time"].dt.minute * 60
+           + s["signal_time"].dt.second)
+    h0 = (CONFIG["halt_start_hhmm"] // 100) * 3600 + (CONFIG["halt_start_hhmm"] % 100) * 60
+    h1 = (CONFIG["halt_end_hhmm"] // 100) * 3600 + (CONFIG["halt_end_hhmm"] % 100) * 60
+    dow = s["signal_time"].dt.dayofweek
+    in_halt = (tod > h0) & (tod <= h1)
+    weekend = ((dow == 4) & (tod > h0)) | (dow == 5) | ((dow == 6) & (tod <= h1))
+    m = (in_halt | weekend) & (s["_fail"] == "")
+    s.loc[m, "_fail"] = "halt_time_signal"
 
     # -- quarantine: gross failures contaminate the rest of their session ----
     gross = s[(s["xs_dmax"] > CONFIG["gross_fail_ticks"])]

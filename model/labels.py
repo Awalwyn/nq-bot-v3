@@ -35,7 +35,6 @@ TARGET_MEANINGS = {
     "minutes_to_mae": "minutes from entry to the adverse extreme",
     "final_delta_ticks": "signed close-vs-entry at window end (dir-normalized)",
     "delta_1m": "dir-normalized close delta 1 min out",
-    "delta_60m": "dir-normalized close delta 60 min out",
 }
 
 # Targets whose value is a LOWER BOUND when the row is right-censored.
@@ -107,7 +106,7 @@ if __name__ == "__main__":
 
     df = dataset.load_signals(args.signals, args.dir)
     print("censoring:", censoring_report(df))
-    for t in ("mfe_ticks", "minutes_to_mfe", "delta_60m"):
+    for t in ("mfe_ticks", "minutes_to_mfe", "final_delta_ticks"):
         prepped = prepare_target(df, t, censor_policy="drop")
         print(f"  {t:16s} -> {len(prepped):4d} usable rows | {TARGET_MEANINGS.get(t,'')}")
     lab = reached_favorable(df, ticks=20)

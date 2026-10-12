@@ -37,8 +37,8 @@ NUMERIC_TARGETS = [
     "mfe_ticks", "mae_ticks", "minutes_to_mfe", "minutes_to_mae",
     "final_delta_ticks",
     "delta_1m", "delta_3m", "delta_5m", "delta_10m", "delta_15m",
-    "delta_30m", "delta_60m",
-]
+    "delta_30m",
+]  # delta_60m removed: ~98.5% empty in the logger; final_delta_ticks is the 60-min move
 
 
 # ---------------------------------------------------------------------------
