@@ -573,6 +573,54 @@ def check_horizons_censoring(sig, rep):
         rep.note("no horizon deltas populated past the window end.")
 
 
+def _bar_gap_tol(bt):
+    """A covering bar must sit within ~1.5 bar-periods of a tick time. Returns
+    that tolerance as a np.timedelta64, inferred from the bars' own cadence
+    (median sub-minute spacing), so it is not hard-wired to 15s."""
+    if bt is None or len(bt) < 3:
+        return np.timedelta64(23, "s")
+    d = np.diff(bt).astype("timedelta64[ms]").astype(float) / 1000.0
+    d = d[(d > 0) & (d <= 60)]
+    bar_secs = float(np.median(d)) if len(d) else 15.0
+    return np.timedelta64(int(round(bar_secs * 1.5 * 1000)), "ms")
+
+
+def check_data_holes(sig, bars, meta, rep):
+    """Report abnormal gaps in bar coverage (feed holes) distinct from the normal
+    daily maintenance halt and the weekend. For each hole, count the signal
+    windows that overlap it — those labels are truncated and should be censored
+    as data_gap by the logger. This is a WARNING (data-coverage fact), not an
+    error; the fabrication checks skip these rows via the missing-covering-bar
+    test so a hole never masquerades as fabrication."""
+    if bars is None:
+        return
+    bt = pd.to_datetime(bars["bar_time"], errors="coerce").dropna().sort_values().reset_index(drop=True)
+    if len(bt) < 3:
+        return
+    d = bt.diff().dt.total_seconds()
+    holes = []
+    for i in range(1, len(bt)):
+        gap = d.iloc[i]
+        if gap is None or gap <= 1800:          # <= 30 min: normal within-session
+            continue
+        start, end = bt.iloc[i - 1], bt.iloc[i]
+        if start.hour == 16 and gap <= 5400:    # daily maintenance halt (~16:00-17:00)
+            continue
+        if start.weekday() == 4 and end.weekday() == 6:  # Fri -> Sun weekend
+            continue
+        holes.append((start, end, gap))
+    if not holes:
+        rep.note("no abnormal data holes (bar coverage continuous outside normal breaks).")
+        return
+    st = pd.to_datetime(sig["signal_time"], errors="coerce")
+    we = pd.to_datetime(sig["window_end_actual"], errors="coerce")
+    for start, end, gap in holes:
+        affected = int(((we > start) & (st < end)).sum())
+        rep.warn(f"data hole: {start} -> {end} ({gap/3600.0:.1f}h, no bars). "
+                 f"{affected} signal window(s) overlap it — labels truncated/"
+                 f"uncheckable (expect them censored as data_gap by a hole-aware logger).")
+
+
 def check_final_price_range(sig, bars, rep, sample=1000):
     if bars is None:
         return
@@ -583,12 +631,13 @@ def check_final_price_range(sig, bars, rep, sample=1000):
     blo = pd.to_numeric(b["low"], errors="coerce").values
     bhi = pd.to_numeric(b["high"], errors="coerce").values
     last_bar = bt[-1] if len(bt) else None
+    gap_tol = _bar_gap_tol(bt)
     s = sig.copy()
     s["_e"] = pd.to_datetime(s["window_end_actual"], errors="coerce")
     s["_s"] = pd.to_datetime(s["signal_time"], errors="coerce")
     if len(s) > sample:
         s = s.sample(sample, random_state=0)
-    bad = 0; skipped_eor = 0
+    bad = 0; skipped_eor = 0; skipped_hole = 0
     for _, r in s.iterrows():
         if pd.isna(r["_e"]) or r["_e"] <= r["_s"]:
             continue  # zero-length window carries no final price to check
@@ -601,14 +650,28 @@ def check_final_price_range(sig, bars, rep, sample=1000):
         # a tick time t is the first bar whose timestamp >= t (side=left). A tick
         # exactly on a grid boundary can belong to the adjacent bar, so accept the
         # final price within the containing bar OR its immediate neighbours.
-        j = int(np.searchsorted(bt, np.datetime64(r["_e"]), side="left"))
+        jraw = int(np.searchsorted(bt, np.datetime64(r["_e"]), side="left"))
+        # DATA HOLE: if the nearest bar on/after wea is more than ~1.5 bar-periods
+        # away, the covering bar was never written (a feed gap sits here), so the
+        # bars cannot cross-check this row. Skip + count rather than false-fail;
+        # check_data_holes reports the gap, and the logger should censor these.
+        if jraw < len(bt) and (bt[jraw] - np.datetime64(r["_e"])) > gap_tol:
+            skipped_hole += 1
+            continue
+        j = jraw
         if j >= len(bt):
             j = len(bt) - 1
         if j < 0:
             continue
-        tol = 2 * (float(r["tick_size"]) if r.get("tick_size", 0) else 0.25)
+        tickv = (float(r["tick_size"]) if r.get("tick_size", 0) else 0.25)
         lo_env = blo[max(0, j - 1):j + 2].min()
         hi_env = bhi[max(0, j - 1):j + 2].max()
+        # Tick Replay reconstructs a slightly finer path than the 15s bar OHLC, so
+        # at violent bars the final tick can print a few ticks beyond the bar
+        # envelope. Scale tolerance with the local bar range (floor 2, cap 12
+        # ticks) so this is tolerated while gross fabrication is still caught.
+        env_ticks = (hi_env - lo_env) / tickv
+        tol = min(max(2.0, 0.1 * env_ticks), 12.0) * tickv
         if r["final_price"] < lo_env - tol or r["final_price"] > hi_env + tol:
             bad += 1
     if bad:
@@ -616,8 +679,13 @@ def check_final_price_range(sig, bars, rep, sample=1000):
                 "(fabricated final price).")
     else:
         note = "final_price within the bar range at window end"
+        extras = []
         if skipped_eor:
-            note += f" ({skipped_eor} end-of-run rows skipped — final tick after last bar)"
+            extras.append(f"{skipped_eor} end-of-run")
+        if skipped_hole:
+            extras.append(f"{skipped_hole} data-hole")
+        if extras:
+            note += " (" + ", ".join(extras) + " rows skipped — no covering bar)"
         rep.note(note + ".")
 
 
@@ -778,12 +846,13 @@ def check_join_parity(sig, bars, strict, rep, sample=200):
     lo = bars["low"].values
 
     last_bar = bt[-1] if len(bt) else None
+    gap_tol = _bar_gap_tol(bt)
     s = sig.copy()
     s["signal_time"] = pd.to_datetime(s["signal_time"], errors="coerce")
     s["window_end_actual"] = pd.to_datetime(s["window_end_actual"], errors="coerce")
     s = s.sample(min(sample, len(s)), random_state=0)
 
-    exceed = checked = inflated = skipped_eor = 0
+    exceed = checked = inflated = skipped_eor = skipped_hole = 0
     for _, r in s.iterrows():
         tick = float(r["tick_size"]) if r.get("tick_size", 0) else 0.25
         if pd.isna(r["window_end_actual"]) or r["window_end_actual"] <= r["signal_time"]:
@@ -792,6 +861,14 @@ def check_join_parity(sig, bars, strict, rep, sample=200):
         # (run stopped mid-interval); the covering bars don't exist to compare.
         if last_bar is not None and np.datetime64(r["window_end_actual"]) > last_bar:
             skipped_eor += 1
+            continue
+        # DATA HOLE: if the covering bar at wea is missing (nearest bar on/after wea
+        # is more than ~1.5 bar-periods away), a feed gap sits here and the window's
+        # bars are incomplete — skip rather than flag the truncated labels as
+        # inflated. check_data_holes reports the gap.
+        jcov = np.searchsorted(bt, np.datetime64(r["window_end_actual"]), side="left")
+        if jcov < len(bt) and (bt[jcov] - np.datetime64(r["window_end_actual"])) > gap_tol:
+            skipped_hole += 1
             continue
         # Close-stamped bars. The bar that CONTAINS wea closes AFTER wea, so it
         # also holds ticks the logger correctly excluded. Use two envelopes:
@@ -813,9 +890,16 @@ def check_join_parity(sig, bars, strict, rep, sample=200):
             return max((ref - seg_lo.min()) / tick, 0.0), max((seg_hi.max() - ref) / tick, 0.0)
         inner = excursions(lo_i, hi_inner) if hi_inner > lo_i else None
         outer = excursions(lo_i, hi_outer) if hi_outer > lo_i else None
+        # Tick-Replay-vs-bar-OHLC divergence at violent bars: let the inflation
+        # tolerance scale with the local excursion span (floor 1, cap 12 ticks),
+        # so a few-tick divergence passes while gross fabrication still fails.
+        if outer is not None:
+            tol_inf = min(max(1.0, 0.1 * (outer[0] + outer[1])), 12.0)
+        else:
+            tol_inf = 1.0
         if inner is not None and (inner[0] > r["mfe_ticks"] + 1.0 or inner[1] > r["mae_ticks"] + 1.0):
             exceed += 1
-        if outer is not None and (r["mfe_ticks"] > outer[0] + 1.0 or r["mae_ticks"] > outer[1] + 1.0):
+        if outer is not None and (r["mfe_ticks"] > outer[0] + tol_inf or r["mae_ticks"] > outer[1] + tol_inf):
             inflated += 1
         checked += 1
 
@@ -831,8 +915,13 @@ def check_join_parity(sig, bars, strict, rep, sample=200):
                 f"MFE/MAE exceeding logged by >1 tick (possible logging bug).")
     else:
         note = f"join-parity OK on {checked} sampled signals (logged excursions bounded by bar range)"
+        extras = []
         if skipped_eor:
-            note += f"; {skipped_eor} end-of-run rows skipped"
+            extras.append(f"{skipped_eor} end-of-run")
+        if skipped_hole:
+            extras.append(f"{skipped_hole} data-hole")
+        if extras:
+            note += "; " + ", ".join(extras) + " rows skipped"
         rep.note(note + ".")
 
 
@@ -871,7 +960,7 @@ def main():
         strict = True
     print("=" * 64)
     mode = "PILOT (exhaustive)" if pilot else ("STRICT" if strict else "lenient (--allow-incomplete)")
-    print(f"v3 data validation (rev 4) — {mode}")
+    print(f"v3 data validation (rev 5) — {mode}")
     print("=" * 64)
 
     rep = Report()
@@ -893,6 +982,7 @@ def main():
         check_signal_bar_session(sig, bars, rep)
         check_window_coverage(sig, bars, rep)
         check_rth_cadence(sig, bars, meta, rep)
+        check_data_holes(sig, bars, meta, rep)
         check_final_price_range(sig, bars, rep, sample=sample)
         check_timestamps(sig, strict, rep)
         check_nulls_and_bools(sig, rep)

@@ -155,21 +155,37 @@ def compare(signals, bars, strategies: dict) -> pd.DataFrame:
 
 if __name__ == "__main__":
     import argparse
+    from model import entries as entries_mod
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", help="folder with signals_*.csv and bars_*.csv")
     ap.add_argument("--tp", type=float, default=200, help="PLACEHOLDER flat TP ticks")
     ap.add_argument("--sl", type=float, default=400, help="PLACEHOLDER flat SL ticks")
+    ap.add_argument("--entries", action="store_true",
+                    help="collapse signals to one real ENTRY per cluster first "
+                         "(the honest per-trade baseline). Recommended.")
+    ap.add_argument("--policy", default="first", choices=entries_mod.VALID_POLICIES)
     args = ap.parse_args()
 
     sig = dataset.load_signals(dir_path=args.dir)
     bars_path = dataset._latest(args.dir, "bars")
     bars = pd.read_csv(bars_path)
 
-    print(f"loaded {len(sig)} signals, {len(bars)} bars")
+    unit = "15s signals"
+    if args.entries:
+        raw = len(sig)
+        sig = entries_mod.to_entries(sig, policy=args.policy)
+        unit = f"real entries (policy={args.policy}, from {raw} signals)"
+    print(f"loaded {len(sig)} {unit}, {len(bars)} bars")
     print("\nbaseline comparison (flat exits — PLACEHOLDER tp/sl):")
     compare(sig, bars, {
         "flat_200_400": flat(200, 400),
         "flat_100_200": flat(100, 200),
         "flat_50_100_15mto": flat(50, 100, timeout_min=15),
     })
-    print("\n(these numbers are on SYNTHETIC data — framework proof only.)")
+    if args.entries:
+        print("\nThese are per-ENTRY expectancies — the real baseline a learned exit must beat. "
+              "flat tp/sl are still PLACEHOLDERS; the learned-exit comparison plugs in here once "
+              "a model is trained on the full dataset.")
+    else:
+        print("\nNote: flat tp/sl are PLACEHOLDERS, and every 15s signal counts as a 'trade' "
+              "(NOT deduped). Re-run with --entries for the honest per-trade baseline.")

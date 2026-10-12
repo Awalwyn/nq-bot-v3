@@ -147,6 +147,10 @@ namespace NinjaTrader.NinjaScript.Indicators
         [Display(Name = "RTH End HHmm", Order = 7, GroupName = "1. Collection")]
         public int RthEnd { get; set; }
 
+        [NinjaScriptProperty][Range(1, 86400)]
+        [Display(Name = "Max Data-Gap Seconds (censor as data_gap)", Order = 8, GroupName = "1. Collection")]
+        public int MaxDataGapSeconds { get; set; }
+
         [Display(Name = "Output Folder", Order = 1, GroupName = "2. Output")]
         public string OutputFolder { get; set; }
 
@@ -228,6 +232,9 @@ namespace NinjaTrader.NinjaScript.Indicators
                 LogAllSessions = true;
                 RthStart = 830;    // 08:30 CT — matches the entry model's session (chart tz = Central)
                 RthEnd = 1500;     // 15:00 CT
+                MaxDataGapSeconds = 300;  // if the last in-window tick is >5 min before the
+                                          // window end, data stopped (feed hole / halt / weekend):
+                                          // right-censor as data_gap instead of window_complete.
 
                 OutputFolder = @"C:\ProgramData\nqbotv3\data\training";  // ProgramData: never OneDrive-synced, always present, writable
                 WriteBarsFile = true;
@@ -500,8 +507,31 @@ namespace NinjaTrader.NinjaScript.Indicators
                 // window end must NOT touch MFE/MAE/horizons/final delta.
                 if (tickTime > o.WindowEnd)
                 {
-                    o.FinalizeReason = o.CutByRthClose ? "rth_close" : "window_complete";
-                    o.RightCensored = o.CutByRthClose;
+                    // DATA-GAP CENSORING: this is the first tick AFTER the window end.
+                    // If the last in-window tick landed well before the window end
+                    // (more than MaxDataGapSeconds), the data stream stopped mid-window
+                    // (feed hole, maintenance halt, weekend) and we never observed the
+                    // full window — so it is right-censored at the last tick, NOT a
+                    // completed window. Without this, a gap-truncated window is
+                    // silently mislabeled window_complete with understated MFE/MAE.
+                    double gapSec = o.SeenAnyTick
+                        ? (o.WindowEnd - o.LastInWindowTime).TotalSeconds
+                        : double.MaxValue;
+                    if (o.CutByRthClose)
+                    {
+                        o.FinalizeReason = "rth_close";
+                        o.RightCensored = true;
+                    }
+                    else if (o.SeenAnyTick && gapSec > MaxDataGapSeconds)
+                    {
+                        o.FinalizeReason = "data_gap";
+                        o.RightCensored = true;
+                    }
+                    else
+                    {
+                        o.FinalizeReason = "window_complete";
+                        o.RightCensored = false;
+                    }
                     FinalizeAndWrite(o);
                     openObs.RemoveAt(i);
                     continue;
@@ -757,6 +787,7 @@ namespace NinjaTrader.NinjaScript.Indicators
                 sb.AppendLine("  \"min_abs_score\": " + MinAbsScore + ",");
                 sb.AppendLine("  \"max_abs_score\": " + MaxAbsScore + ",");
                 sb.AppendLine("  \"window_minutes\": " + WindowMinutes + ",");
+                sb.AppendLine("  \"max_data_gap_seconds\": " + MaxDataGapSeconds + ",");
                 sb.AppendLine("  \"cut_at_rth_close\": " + (CutAtRthClose ? "true" : "false") + ",");
                 sb.AppendLine("  \"log_all_sessions\": " + (LogAllSessions ? "true" : "false") + ",");
                 sb.AppendLine("  \"first_bar_time\": " + J(firstBarTime == DateTime.MinValue ? "" : firstBarTime.ToString("yyyy-MM-ddTHH:mm:ss", CultureInfo.InvariantCulture)) + ",");

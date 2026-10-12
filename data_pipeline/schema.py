@@ -219,7 +219,10 @@ EXPECTED_TIMEZONE_ID = "Central Standard Time"
 PILOT_MIN_TICKS_PER_MIN = 2.0
 
 # Allowed enumerations — anything else is a corrupted/fabricated value.
-VALID_FINALIZE_REASONS = {"window_complete", "rth_close", "terminated"}
+# "data_gap" = the window ran into a period with no tick data (feed hole,
+# maintenance break, weekend) before its scheduled end, so it is right-censored
+# at the last observed tick rather than a true completed window.
+VALID_FINALIZE_REASONS = {"window_complete", "rth_close", "terminated", "data_gap"}
 VALID_DIRECTIONS = {"long", "short"}
 
 # final_delta_ticks must equal (final_price - reference)/tick * dir within this.
